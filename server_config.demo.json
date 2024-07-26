@@ -1,0 +1,66 @@
+{
+  "log_level": "debug",
+  "log_format": "%(asctime)s - %(pathname)s - %(levelname)s - %(message)s",
+  "aes_key": "",
+  "aes_iv": "",
+  "obfuscate_param": "",
+  "title_server_url": [""],
+  "main_url": "",
+  "api_url": "",
+  "chime_hosts": [""],
+  "request_timeout": 2,
+  "request_retry_times": 3,
+  "key_chip": "",
+  "region_id": 0,
+  "default_test_uid": 0,
+  "place_id": 0,
+  "place_name": "",
+  "version": "",
+  "data_version": "1.41.08",
+  "mai_encoding": "1.40",
+  "database": {
+    "type": "mysql",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "114514",
+    "database": "maibox"
+  },
+  "wxid_admins": [
+    ""
+  ],
+  "whitelist_enabled": true,
+  "user_id_whitelist": [],
+  "host": "0.0.0.0",
+  "port": 80,
+  "email":{
+    "sender": "sender@example.com",
+    "password": "pwd",
+    "host": "smtp.example.com",
+    "port": 25,
+    "receiver": ["receiver@example.com"]
+  },
+  "wechat_token": "123456",
+  "wechat_app_secret": "123456",
+  "wechat_app_id": "123456",
+  "frontend_setting": {
+    "theme_color": "#ffa900",
+    "whitelist_btn_ids": [
+      "send_ticket"
+    ]
+  },
+  "release_info": {
+    "version": "",
+    "git_commit": "",
+    "build_time": ""
+  },
+  "ali_ai_key": "sk-example",
+  "tencent_api":{
+    "secret_id": "secret_id",
+    "secret_key": "secret_key"
+  },
+  "agreement":{
+    "date": "20240712",
+    "text": "阁下在使用本{place}提供的服务前，应仔细阅读以下内容条款。\n\n1、鉴于本{place}的性质，阁下应当完全知晓使用本{place}提供的服务所产生的后果并同意自行承担相应后果（包括但不限于被封号等）。\n\n2、阁下应当清楚对外公开用户信息（如UserID等）带来的风险；本{place}保证不会对外泄露任何用户信息，且不会未经阁下许可对阁下数据进行修改。\n\n3、为了服务器正常运行，阁下不应该对服务器进行网络攻击等滥用行为，否则{place}将缩小服务范围直至停止对外服务。\n\n\n若继续发送信息将视为阁下同意上述条款；若不同意上述条款阁下可选择{negopt}本{place}。\n若有其他疑问可发邮件至 admin@error063.work"
+  }
+}

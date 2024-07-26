@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="theme-color" content="#000000"/>
+    <title>－乐曲成绩－</title>
+    <link rel="stylesheet" href="https://maimai.wahlap.com/maimai-mobile/css/common.css?ver=1.30?20220202"/>
+</head>
+<body style="background-color: #fff;">
+<div class="wrapper main_wrapper t_c">
+    <div class="screw_block m_15 f_15 scroll_point">页面生成于 {{ gen_time }}</div>
+    {% for music in music_list %}
+        <div class="w_450 m_15 p_r f_0">
+            <div class="music_{{ music["difficulty"] }}_score_back pointer p_3">
+                <form action="https://maimai.wahlap.com/maimai-mobile/record/musicDetail/" method="get" accept-charset="utf-8">
+                    <img src="https://maimai.wahlap.com/maimai-mobile/img/diff_{{ music["difficulty"] }}.png" class="h_20 f_l">
+                    <div class="clearfix"></div>
+                    <div class="music_lv_block f_r t_c f_14">{{ music["level"] }}</div>
+                    <div class="music_name_block t_l f_13 break">{{ music["title"] }}</div>
+                    <div class="music_score_block w_120 t_r f_l f_12">{{ music["achievement"] }}</div>
+                    <div class="music_score_block w_180 t_r f_l f_12">
+                        <img src="https://maimai.wahlap.com/maimai-mobile/img/deluxscore.png" class="v_b f_l"/>
+                        {{ music["deluxscoreMax"] }} / 0
+                    </div>
+                    <img src="https://maimai.wahlap.com/maimai-mobile/img/music_icon_{{ music["syncStatus"] }}.png?ver={{ mai_version }}" class="h_30 f_r"/>
+                    <img src="https://maimai.wahlap.com/maimai-mobile/img/music_icon_{{ music["comboStatus"] }}.png?ver={{ mai_version }}" class="h_30 f_r"/>
+                    <img src="https://maimai.wahlap.com/maimai-mobile/img/music_icon_{{ music["rate"] }}.png?ver={{ mai_version }}" class="h_30 f_r"/>
+                    <div class="clearfix"></div><input type="hidden" name="idx" value=""/>
+                </form>
+            </div>
+            <img src="https://maimai.wahlap.com/maimai-mobile/img/music_{{ music["chart_type"] }}.png" class="music_kind_icon "/>
+        </div>
+    {% endfor %}
+</div>
+</body>
+</html>

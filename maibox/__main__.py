@@ -1,0 +1,32 @@
+import os
+import sys
+
+import maibox.config as config
+from gevent import pywsgi
+
+from maibox.app import app
+from maibox.utils import getLogger
+
+server_config = config.get_config()
+
+logger = getLogger(__name__)
+
+try:
+    if not os.path.exists("server_config.json"):
+        logger.info("server_config.json not found.")
+        os._exit(-1)
+    if not os.path.exists("./img"):
+        os.mkdir("./img")
+    host = config.get_config()["host"]
+    port = config.get_config()["port"]
+    server = pywsgi.WSGIServer((host, port), app)
+    logger.info(f"Server running at http://{host}:{port}")
+    server.serve_forever()
+    logger.info('Server stopped')
+except KeyboardInterrupt:
+    server.stop()
+    logger.info('Server stopped')
+    os._exit(0)
+except:
+    logger.info("Error:", sys.exc_info()[0])
+    os._exit(-1)
