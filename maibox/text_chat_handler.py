@@ -262,18 +262,24 @@ class TextChatHandler:
 
     def handle_send_ticket(self, wxid: str, content: str, version: str, region: str):
         split_content = self.final_word_cut(content)
-        user_id = self.dao.getUid(wxid)
-        my_preview = self.preview(wxid)
-        if isinstance(my_preview, dict):
-            if my_preview["is_in_whitelist"] or True:
-                if 6 >= int(split_content[1]) >= 2:
-                    return_msg = auto_bot.send_ticket(user_id, int(split_content[1]))["msg"]
-                else:
-                    return_msg = "倍数不在2-6之间"
-            else:
-                return_msg = "你没有权限，发送 “加入白名单” 以获取指引"
+        if len(split_content) != 2:
+            return_msg = "发送 “发券 [倍数]” 发送倍券"
         else:
-            return_msg = my_preview
+            user_id = self.dao.getUid(wxid)
+            if not user_id:
+                return_msg = "未绑定，发送 “绑定 [你的UserID]” 绑定"
+            else:
+                my_preview = self.preview(wxid)
+                if isinstance(my_preview, dict):
+                    if True or my_preview["is_in_whitelist"]:
+                        if split_content[1].isdigit() and 6 >= int(split_content[1]) >= 2:
+                            return_msg = auto_bot.send_ticket(user_id, int(split_content[1]))["msg"]
+                        else:
+                            return_msg = "倍数不在2-6之间"
+                    else:
+                        return_msg = "你没有权限，发送 “加入白名单” 以获取指引"
+                else:
+                    return_msg = my_preview
 
         return return_msg
 
@@ -293,6 +299,9 @@ class TextChatHandler:
         return_msg = ""
         flag = False
         uid = self.dao.getUid(wxid)
+        if not uid:
+            return_msg = "未绑定，发送 “绑定 [你的UserID]” 绑定"
+            return return_msg
         username, password = self.dao.get_df_account(wxid)
         if username and password:
             return_msg += f"水鱼账户: {username}\n"

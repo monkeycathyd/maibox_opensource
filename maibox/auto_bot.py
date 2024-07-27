@@ -100,7 +100,7 @@ def send_ticket(uid, ticket_id):
         login = request.Request("UserLoginApiMaimaiChn", login_dict)
         if login["returnCode"] != 1:
             result["is_got_qr_code"] = False
-            result["msg"] = "未获取二维码"
+            result["msg"] = "请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮后再试一遍"
             return result
     else:
         result["is_already_login"] = True
@@ -205,7 +205,7 @@ def dump_user_all(uid):
         login = request.Request("UserLoginApiMaimaiChn", login_dict)
         if login["returnCode"] != 1:
             result["is_got_qr_code"] = False
-            result["msg"] = "未获取二维码"
+            result["msg"] = "请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮后再试一遍"
             return result
     else:
         result["is_already_login"] = True
