@@ -10,9 +10,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 logger = logging.getLogger(__name__)
 
-scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.split(' ')
-combo = ' FC FC+ AP AP+'.split(' ')
-diffs = 'Basic Advanced Expert Master Re:Master'.split(' ')
+scoreRank = ['D', 'C', 'B', 'BB', 'BBB', 'A', 'AA', 'AAA', 'S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+']
+combo = ['', 'FC', 'FC+', 'AP', 'AP+']
+diffs = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master']
 maimaiImgPath = r'static/images/maimai'
 materialPath = r'static/Material'
 

@@ -71,7 +71,7 @@ class ErrorEMailSender(threading.Thread):
 
         message.attach(MIMEText(self.content, 'plain'))
 
-        att = MIMEText(open('../logging.log', 'rb').read(), 'base64', 'utf-8')
+        att = MIMEText(open('./logging.log', 'rb').read(), 'base64', 'utf-8')
         att["Content-Type"] = 'application/octet-stream'
         att["Content-Disposition"] = f'attachment; filename="logging-{int(time.time())}.log"'
         message.attach(att)
