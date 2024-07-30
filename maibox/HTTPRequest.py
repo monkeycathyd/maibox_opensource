@@ -60,10 +60,10 @@ class HTTPRequest:
             if len(result["body"]) > 0:
                 break
 
-        if not (len(result["body"]) > 0):
-            raise Exception("Max Retry Failed")
         if result["status_code"] != 200:
             raise Exception(f"Request Failed with status code {result['status_code']}")
+        if not (len(result["body"]) > 0):
+            raise Exception("Max Retry Failed")
 
         end = int(round(time.time() * 1000)) - ctime
         logger.info(f"{unobfuscated_api} was response in {end}ms:\nStatus Code: {result['status_code']}\nHeaders: {result['headers']}")

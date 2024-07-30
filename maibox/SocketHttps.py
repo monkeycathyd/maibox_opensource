@@ -1,33 +1,69 @@
+import socket
 import ssl
-import http.client
 
-import urllib3.util
-
-# 创建一个SSL上下文，忽略证书验证
-context = ssl.create_default_context()
-context.check_hostname = False
-context.verify_mode = ssl.CERT_NONE
+from urllib3.util import Url
 
 class HttpClient:
     @staticmethod
-    def post(url: urllib3.util.Url, headers, body, timeout: float = 3):
-        conn = http.client.HTTPSConnection(host=url.host, port=url.port, context=context, timeout=timeout)
+    def post(uri: Url, headers, body, timeout: float = 3):
+        host = uri.hostname
+        port = uri.port
+        context = ssl.create_default_context()
 
-        headers["Content-Length"] = str(len(body))
-        headers["Host"] = url.host
+        # 构建请求头
+        headers["Content-Length"] = len(body)
+        headers["Host"] = host
+        request = f"POST {uri.path} HTTP/1.1\r\n"
+        for key, value in headers.items():
+            request += f"{key}: {value}\r\n"
+        request += "\r\n"
 
-        # 发送POST请求
-        conn.request("POST", url.path, body, headers)
 
-        # 获取响应
-        response = conn.getresponse()
-        response_data = response.read()
+        # 连接服务器
+        if uri.scheme == "http":
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        else:
+            sock = context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=host)
+        sock.connect((host, port))
+        sock.settimeout(timeout)
 
-        # 解析响应头
-        response_headers = dict(response.getheaders())
+        # 发送请求
+        sock.send(request.encode() + body)
+        # sock.sendall(body)
+
+        # 接收响应
+        response = b''
+        response_headers = {}
+        response_code = 0
+
+        data = sock.recv(4096)
+
+        for line in data.split(b'\r\n\r\n')[0].split(b'\r\n'):
+            if b'HTTP' in line:
+                response_code = int(line.split(b' ')[1].decode())
+            else:
+                response_headers[line.split(b': ')[0].decode().strip()] =  line.split(b': ')[1].decode().strip()
+
+        content_length = int(response_headers.get('Content-Length', 0))
+
+        response += data.split(b'\r\n\r\n')[1]
+        current_length = len(response)
+
+        while current_length < content_length:
+            try:
+                data = sock.recv(4096)
+                if not data:
+                    break
+                response += data
+                current_length = len(response)
+            except:
+                break
+
+        sock.close()
 
         return {
-            "status_code": response.status,
+            "status_code": response_code,
             "headers": response_headers,
-            "body": response_data
+            "body": response
         }
+
