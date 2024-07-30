@@ -8,7 +8,7 @@ class HttpClient:
     def post(uri: Url, headers, body, timeout: float = 3):
         host = uri.hostname
         port = uri.port
-        context = ssl.create_default_context()
+        context = ssl._create_unverified_context()
 
         # 构建请求头
         headers["Content-Length"] = len(body)

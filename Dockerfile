@@ -1,4 +1,4 @@
-FROM error063/maibox_base_system:1
+FROM error063/maibox:ver3
 
 WORKDIR /app
 
