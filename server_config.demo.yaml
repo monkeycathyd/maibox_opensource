@@ -11,9 +11,9 @@ ai:
 arcade_info:  # 机台信息
   data_version: 1.00.00 # 游戏数据版本
   key_chip: A00E11E4514 # 机台keychip
-  place_id: 14 # 机台地区id
-  place_name: example # 机台所在的店铺名称
-  region_id: 1145 # 店铺id
+  place_id: 14 # 机台地区id（必须与keychip对应）
+  place_name: example # 机台所在的店铺名称（必须与keychip对应）
+  region_id: 1145 # 店铺id（必须与keychip对应）
   version: 1.00.00 # 游戏软件版本
 crypto:
   aes_iv: aes_iv # AES加密向量（请自行寻找相关值）
