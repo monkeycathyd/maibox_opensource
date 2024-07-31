@@ -443,6 +443,7 @@ class TextChatHandler:
                 return helpers.logout(uid, timestamp)["msg"]
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
+                logger.error(f"{traceback.format_exc()}")
                 return "访问失败，可能是服务器错误"
         else:
             return None
@@ -454,6 +455,7 @@ class TextChatHandler:
                 return helpers.get_preview(uid, self.dao)
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
+                logger.error(f"{traceback.format_exc()}")
                 return "访问失败，可能是服务器错误"
         else:
             return None
@@ -474,6 +476,7 @@ class TextChatHandler:
                 return text
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
+                logger.error(f"{traceback.format_exc()}")
                 return "访问失败，可能是服务器错误"
         else:
             return None

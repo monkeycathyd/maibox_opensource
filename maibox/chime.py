@@ -36,7 +36,7 @@ class GetUserData:
 
     def get_error_id(self):
         if not self.instance:
-            return 50
+            return 88
         get_error_id_func = self.lib.CCommGetUserData_getErrorID
         get_error_id_func.argtypes = [ctypes.c_void_p]
         get_error_id_func.restype = ctypes.c_int

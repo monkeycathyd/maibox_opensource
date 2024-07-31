@@ -39,8 +39,8 @@ log:
   format: '%(asctime)s - %(pathname)s - %(levelname)s - %(message)s' # 日志格式
   level: debug # 日志级别
 request:
-  request_retry_times: 3 # 请求重试次数
-  request_timeout: 2 # 请求超时时间
+  retry_times: 3 # 请求重试次数
+  timeout: 2 # 请求超时时间
 server:
   host: 0.0.0.0 # 服务器地址
   port: 80 # 服务器端口
