@@ -209,16 +209,16 @@ def drawSignleImg(data,count):
 
 
     try:
-        cover = Image.open(rf"{maimaiImgPath}/covers/{get_cover_len5_id(data['song_id'])}.png")
+        cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png")
         cover = cover.resize((90, 90))
     except FileNotFoundError:
         try:
             coverDownload = requests.get(f"https://www.diving-fish.com/covers/{get_cover_len5_id(data['song_id'])}.png")
-            with open(rf"{maimaiImgPath}/covers/{get_cover_len5_id(data['song_id'])}.png", 'wb+')as f:
+            with open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png", 'wb+')as f:
                 f.write(coverDownload.content)
                 f.close()
             logger.info(f"[maimaiDX]歌曲{get_cover_len5_id(data['song_id'])}封面下载成功！")
-            cover = Image.open(f"{maimaiImgPath}/covers/{get_cover_len5_id(data['song_id'])}.png")
+            cover = Image.open(f"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png")
             cover = cover.resize((90, 90))
         except:
             try:
@@ -232,14 +232,12 @@ def drawSignleImg(data,count):
                 cover = cover.resize((90, 90))
             except:
                 try:
-                    os.remove(f"{maimaiImgPath}/covers/{get_cover_len5_id(data['song_id'])}.png")
+                    os.remove(f"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png")
                 except:
                     pass
                 logger.info(f"[maimaiDX]歌曲{data['song_id']}暂无封面")
-                cover = Image.new('RGB', (90, 90), color=(255, 255, 255))
-                tempDraw = ImageDraw.Draw(cover)
-                tempDraw.text(((50 - (coverFront.getsize(f"{data['title']}")[0] / 2)), 40), f"{data['title']}",
-                              font=coverFront, fill=(0, 0, 0))
+                cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_000000_s.png")  # 错误回退封面
+                cover = cover.resize((90, 90))
 
     coverBg = Image.new('RGB', (100, 100), color=levelToColor[f"{data['level_label']}"])
     coverBg.paste(cover, (5, 5))
