@@ -9,7 +9,7 @@
 
 
 
-### 第零步：安装python、pip和mysql环境，python版本必须大于等于3.12，mysql版本大于等于8.0
+### 第零步：安装并配置python、pip和mysql环境，python版本必须大于等于3.12，mysql版本大于等于8.0
 
 #### 第一步：克隆这个项目到本地，打开项目文件夹，安装相关依赖`pip install -r requirements.txt`
 
