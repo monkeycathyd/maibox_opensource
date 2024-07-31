@@ -29,7 +29,6 @@ class HttpClient:
 
         # 发送请求
         sock.send(request.encode() + body)
-        # sock.sendall(body)
 
         # 接收响应
         response = b''
