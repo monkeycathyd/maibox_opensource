@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import time
 
 from maibox.config import get_config
 
