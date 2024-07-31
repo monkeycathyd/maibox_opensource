@@ -19,12 +19,12 @@
 
 #### 第四步：在微信测试公众号设置页面下按下图配置，填写完成后点击提交
 
-![image-20240731160023367](C:\Users\Error063\PycharmProjects\maibox_opensource\assets\image-20240731160023367.png)
+![image-20240731160023367](assets/image-20240731160023367.png)
 
 #### 然后等待微信服务器对URL地址的校验，如果校验成功，在微信测试公众号设置页面内下拉到如图所示的位置，使用你个人微信扫描红框所示的位置关注刚才创建的测试号（校验失败请自行查找问题）
 
-![image-20240731160621789](C:\Users\Error063\PycharmProjects\maibox_opensource\assets\image-20240731160621789.png)
+![image-20240731160621789](assets/image-20240731160621789.png)
 
 #### 然后可以愉快玩耍了
 
-![image-20240731161356382](C:\Users\Error063\PycharmProjects\maibox_opensource\assets\image-20240731161356382.png)
+![image-20240731161356382](assets/image-20240731161356382.png)
