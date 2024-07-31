@@ -8,7 +8,7 @@ import threading
 import time
 
 import maibox.config as config
-from maibox.auto_bot import get_preview
+from maibox.helpers import get_preview
 
 server_config = config.get_config()
 

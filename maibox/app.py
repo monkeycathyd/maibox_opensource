@@ -19,7 +19,7 @@ from maibox import chime
 from maibox.SocketHttps import HttpClient
 from maibox.process_threads import ErrorEMailSender
 from maibox.text_chat_handler import TextChatHandler
-from maibox.auto_bot import logout, send_ticket, dump_user_all, get_preview, query_ticket
+from maibox.helpers import logout, send_ticket, dump_user_all, get_preview, query_ticket, get_user_id_by_qr
 from maibox.orm import Dao
 from maibox.music_record_generate import render_html
 from maibox.utils import getLogger, check_wx_auth
@@ -37,7 +37,7 @@ server_config = config.get_config()
 dao = Dao()
 
 # 初始化文本聊天处理器
-wechat_handler = TextChatHandler(dao)
+text_chat_handler = TextChatHandler(dao)
 
 # 定义认证装饰器，用于检查用户是否在白名单中
 def auth(func):
@@ -70,11 +70,11 @@ def error_handler(e):
         ErrorEMailSender(f"发生错误: {err_uuid}", f"{e}\n{traceback_info}").start()
 
 # 应用的路由和处理函数，实现不同的API接口
-@app.route('/')
+@app.route('/', methods=['GET'], endpoint='index')
 def index():
     return redirect(server_config["main_url"])
 
-@app.route('/img/b50')
+@app.route('/img/b50', methods=['GET'], endpoint='img_b50')
 def img_b50():
     file_id = request.args.get('id', "")
     if not re.match(r'^[0-9a-z]+$', file_id):
@@ -108,56 +108,30 @@ def proxy(api):
 
 @app.route('/api/qr', methods=['GET'], endpoint='qr')
 def qr():
-    if platform.system() != "Windows":
-        return {
-            "userID": 0,
-            "errorID": 88,
-            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:]
-        }
-    content = request.args.get('content')
-    if not(content.startswith("SGWCMAID") and len(content) == 84 and bool(re.match(r'^[0-9A-F]+$', content[20:]))):
-        return {
-            "userID": 0,
-            "errorID": 99,
-            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
-        }
-    getUserData = chime.GetUserData('MAID', 'A63E-01E11910000', '', content[20:])
-    while not getUserData.is_end():
-        getUserData.execute()
-    return {
-        "userID": getUserData.get_user_id(),
-        "errorID": getUserData.get_error_id(),
-        "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
-    }
+    return get_user_id_by_qr(request.args.get('content'))
 
 @app.route('/api/logout', endpoint='logout')
 def logout_app():
-    uid = list(map(int, request.args.get('uid').split("pp")))[-1]
-    return logout(uid)
+    return logout(list(map(int, request.args.get('uid').split("pp")))[-1])
 
 @app.route('/api/ticket', endpoint='ticket')
 @auth
 def ticket_app():
-    ticket_id = int(request.args.get('ticket_id'))
-    uid = list(map(int, request.args.get('uid').split("pp")))
-    return send_ticket(uid[-1], ticket_id)
+    return send_ticket(list(map(int, request.args.get('uid').split("pp")))[-1], int(request.args.get('ticket_id')))
 
 @app.route('/api/dump', endpoint='dump')
 def dump_app():
-    uid = list(map(int, request.args.get('uid').split("pp")))
-    return dump_user_all(uid[-1])
+    return dump_user_all(list(map(int, request.args.get('uid').split("pp")))[-1])
 
 @app.route('/api/get_ticket', endpoint='get_ticket')
 def get_ticket_app():
-    uid = list(map(int, request.args.get('uid').split("pp")))
-    return query_ticket(uid[-1])
+    return query_ticket(list(map(int, request.args.get('uid').split("pp")))[-1])
 
 @app.route('/api/preview', endpoint='preview')
 def preview_app():
-    uid = list(map(int, request.args.get('uid').split("pp")))[-1]
-    return get_preview(uid, dao)
+    return get_preview(list(map(int, request.args.get('uid').split("pp")))[-1], dao)
 
-@app.route('/api/frontend_config')
+@app.route('/api/frontend_config', endpoint='frontend_config')
 def frontend_config():
     return {
         "frontend_setting": config.get_config_with_reload()["settings"]["frontend_setting"],
@@ -188,24 +162,11 @@ def wechat():
         if "action" in data:
             return "success"
         else:
-            msg = ""
-            if data["MsgType"] == "event":
-                msg = wechat_handler.process_event(data["Event"], data["FromUserName"], version, region)
-            elif data["MsgType"] == "image":
-                msg = wechat_handler.process_img(data["PicUrl"], data["FromUserName"])
-            elif data["MsgType"] == "text":
-                msg = wechat_handler.process_chat(data["Content"], data["FromUserName"], version, region)
-            return json.dumps({
-                "FromUserName":data["ToUserName"],
-                "ToUserName":data["FromUserName"],
-                "CreateTime":int(time.time()),
-                "MsgType":"text",
-                "Content":msg
-            }, ensure_ascii=False)
+            return json.dumps(text_chat_handler.process(data, version, region), ensure_ascii=False)
     else:
         return "success"
 
-@app.route('/api/wechat/native', methods=['GET', 'POST'])
+@app.route('/api/wechat/native', methods=['GET', 'POST'], endpoint='wechat_native')
 def wechat_native():
     # 使用传统方式接入微信公众号
     version = region = "native_mode"
@@ -223,21 +184,7 @@ def wechat_native():
         if not xml_str:
             return ""
         # 对xml字符串进行解析
-        data = xmltodict.parse(xml_str)["xml"]
-        msg = ""
-        if data["MsgType"] == "event":
-            msg = wechat_handler.process_event(data["Event"], data["FromUserName"], version, region)
-        elif data["MsgType"] == "image":
-            msg = wechat_handler.process_img(data["PicUrl"], data["FromUserName"])
-        elif data["MsgType"] == "text":
-            msg = wechat_handler.process_chat(data["Content"], data["FromUserName"], version, region)
         return xmltodict.unparse({
-            "xml":{
-                "FromUserName": data["ToUserName"],
-                "ToUserName": data["FromUserName"],
-                "CreateTime": int(time.time()),
-                "MsgType": "text",
-                "Content": msg
-            }
+            "xml":text_chat_handler.process(xmltodict.parse(xml_str)["xml"], version, region)
         })
 

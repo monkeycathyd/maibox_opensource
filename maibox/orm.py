@@ -1,5 +1,3 @@
-import logging
-import re
 from urllib import parse
 
 from sqlalchemy import create_engine, Column, Integer, String

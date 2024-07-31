@@ -18,26 +18,12 @@ def check_wx_auth(signature, timestamp, nonce):
     return hashcode == signature
 
 def is_hex_string(s):
-    hex_chars = set("0123456789abcdef")
-    return all(c in hex_chars for c in s)
+    return all(c in {'e', '4', '1', '6', '7', 'c', '8', '2', '0', '5', 'b', 'd', 'a', 'f', '9', '3'} for c in s)
 
 def getLogger(name):
     logging.basicConfig(level=logging.getLevelName(cfg["log"]["level"].upper()), format=cfg["log"]["format"])
-
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.getLevelName(cfg["log"]["level"].upper()))
-    console_handler.setFormatter(logging.Formatter(cfg["log"]["format"]))
-
-    # 创建一个文件处理程序，并将其级别、格式等设置与日志记录器相同
-    file_handler = logging.FileHandler('logging.log')
-    file_handler.setLevel(logging.getLevelName(cfg["log"]["level"].upper()))
-    file_handler.setFormatter(logging.Formatter(cfg["log"]["format"]))
-
     logger = logging.getLogger(name)
-
-    # 将控制台处理程序和文件处理程序添加到日志记录器中
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
+    logger.addHandler(logging.StreamHandler())
+    logger.addHandler(logging.FileHandler('logging.log'))
     return logger
 

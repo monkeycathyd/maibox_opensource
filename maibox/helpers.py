@@ -1,10 +1,13 @@
+import platform
 import random
+import re
 
 import time
 from datetime import datetime, timedelta
 
 import requests
 
+from maibox import chime
 from maibox.HTTPRequest import HTTPRequest
 from maibox.config import get_config
 from maibox.constants import ticket_define, region_map
@@ -251,4 +254,25 @@ def get_user_region(uid):
     return result
 
 def get_user_id_by_qr(qr_code):
-    return requests.get(f"{random.choice(config["urls"]["chime_hosts"])}/api/qr?content={qr_code}").json()
+    if len(config["urls"]["chime_hosts"]) > 0:
+        return requests.get(f"{random.choice(config["urls"]["chime_hosts"])}/api/qr?content={qr_code}").json()
+    if platform.system() != "Windows":
+        return {
+            "userID": 0,
+            "errorID": 88,
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:]
+        }
+    if not(qr_code.startswith("SGWCMAID") and len(qr_code) == 84 and bool(re.match(r'^[0-9A-F]+$', qr_code[20:]))):
+        return {
+            "userID": 0,
+            "errorID": 99,
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
+        }
+    getUserData = chime.GetUserData('MAID', 'A63E-01E11910000', '', qr_code[20:])
+    while not getUserData.is_end():
+        getUserData.execute()
+    return {
+        "userID": getUserData.get_user_id(),
+        "errorID": getUserData.get_error_id(),
+        "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
+    }

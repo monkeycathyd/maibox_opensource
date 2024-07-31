@@ -1,6 +1,5 @@
 import hashlib
 import json
-import logging
 import time
 import zlib
 import random
@@ -18,7 +17,10 @@ logger = getLogger(__name__)
 
 class HTTPRequest:
     def __init__(self, uid=-1):
-        self._title_server_uri = random.choice(cfg["urls"]["title_server_url"])
+        if len(cfg["urls"]["title_server_url"]) == 0:
+            self._title_server_uri = "https://maimai-gm.wahlap.com:42081/Maimai2Servlet/"
+        else:
+            self._title_server_uri = random.choice(cfg["urls"]["title_server_url"])
         self._obfuscate_param = cfg["crypto"]["obfuscate_param"]
         self._key_chip = cfg["arcade_info"]["key_chip"]
         self._timeout = cfg["request"]["timeout"]
