@@ -22,6 +22,9 @@ def get_cover_len5_id(mid) -> str:
         mid -= 10000
     return f'{mid:05d}'
 
+def get_cover_len6_id(mid) -> str:
+    return f'{mid%10000:06d}'
+
 def generateBaseImg_festival():
     BaseImg = Image.open(rf"{maimaiImgPath}/Style-Buddies/bg_B50.png")
     return BaseImg
@@ -209,16 +212,16 @@ def drawSignleImg(data,count):
 
 
     try:
-        cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png")
+        cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len6_id(data['song_id'])}.png")
         cover = cover.resize((90, 90))
     except FileNotFoundError:
         try:
             coverDownload = requests.get(f"https://www.diving-fish.com/covers/{get_cover_len5_id(data['song_id'])}.png")
-            with open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png", 'wb+')as f:
+            with open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len6_id(data['song_id'])}.png", 'wb+')as f:
                 f.write(coverDownload.content)
                 f.close()
-            logger.info(f"[maimaiDX]歌曲{get_cover_len5_id(data['song_id'])}封面下载成功！")
-            cover = Image.open(f"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png")
+            logger.info(f"[maimaiDX]歌曲{get_cover_len6_id(data['song_id'])}封面下载成功！")
+            cover = Image.open(f"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len6_id(data['song_id'])}.png")
             cover = cover.resize((90, 90))
         except:
             try:
@@ -228,15 +231,15 @@ def drawSignleImg(data,count):
                 else:
                     id = "10" + id
                 logger.info(id)
-                cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(id)}_s.png")
+                cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len6_id(id)}.png")
                 cover = cover.resize((90, 90))
             except:
                 try:
-                    os.remove(f"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len5_id(data['song_id'])}_s.png")
+                    os.remove(f"{maimaiImgPath}/covers/UI_Jacket_{get_cover_len6_id(data['song_id'])}.png")
                 except:
                     pass
                 logger.info(f"[maimaiDX]歌曲{data['song_id']}暂无封面")
-                cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_000000_s.png")  # 错误回退封面
+                cover = Image.open(rf"{maimaiImgPath}/covers/UI_Jacket_000000.png")  # 错误回退封面
                 cover = cover.resize((90, 90))
 
     coverBg = Image.new('RGB', (100, 100), color=levelToColor[f"{data['level_label']}"])
