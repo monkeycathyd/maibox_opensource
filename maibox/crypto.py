@@ -3,12 +3,12 @@ from cryptography.hazmat.backends import default_backend
 
 import maibox.config as config
 
+AES_KEY = bytes.fromhex(config.get_config()["crypto"]["aes_key"])
+AES_IV = bytes.fromhex(config.get_config()["crypto"]["aes_iv"])
 
 class CipherAES:
     BLOCK_SIZE = 128
     KEY_SIZE = 256
-    AES_KEY = bytes.fromhex(config.get_config()["aes_key"])
-    AES_IV = bytes.fromhex(config.get_config()["aes_iv"])
 
     @staticmethod
     def _pad(data):
@@ -26,7 +26,7 @@ class CipherAES:
     @classmethod
     def encrypt(cls, plaintext):
         backend = default_backend()
-        cipher = Cipher(algorithms.AES(cls.AES_KEY), modes.CBC(cls.AES_IV), backend=backend)
+        cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(AES_IV), backend=backend)
         encryptor = cipher.encryptor()
 
         padded_plaintext = cls._pad(plaintext)
@@ -36,7 +36,7 @@ class CipherAES:
     @classmethod
     def decrypt(cls, ciphertext):
         backend = default_backend()
-        cipher = Cipher(algorithms.AES(cls.AES_KEY), modes.CBC(cls.AES_IV), backend=backend)
+        cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(AES_IV), backend=backend)
         decryptor = cipher.decryptor()
 
         decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()

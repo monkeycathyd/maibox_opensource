@@ -97,6 +97,6 @@ def render_html(uid: int):
     template = env.get_template("music_records.html")
     return template.render(
         music_list=get_user_music_details(uid),
-        mai_version=cfg["mai_encoding"],
+        mai_version=cfg["crypto"]["mai_encoding"],
         gen_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )

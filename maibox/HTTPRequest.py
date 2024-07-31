@@ -18,14 +18,13 @@ logger = getLogger(__name__)
 
 class HTTPRequest:
     def __init__(self, uid=-1):
-        self._title_server_uri = random.choice(cfg["title_server_url"])
-        self._obfuscate_param = cfg["obfuscate_param"]
-        # self._title_server_uri = cfg["title_server_url"][0]
-        self._key_chip = cfg["key_chip"]
-        self._timeout = cfg["request_timeout"]
-        self._max_retry = cfg["request_retry_times"]
+        self._title_server_uri = random.choice(cfg["urls"]["title_server_url"])
+        self._obfuscate_param = cfg["crypto"]["obfuscate_param"]
+        self._key_chip = cfg["arcade_info"]["key_chip"]
+        self._timeout = cfg["request"]["request_timeout"]
+        self._max_retry = cfg["request"]["request_retry_times"]
         self._uid = uid
-        self._mai_encoding = cfg["mai_encoding"]
+        self._mai_encoding = cfg["crypto"]["mai_encoding"]
 
     @staticmethod
     def obfuscator(param: str) -> str:

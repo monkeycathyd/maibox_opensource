@@ -4,8 +4,9 @@ import re
 import traceback
 import uuid
 import json
-import logging
 import time
+
+import xmltodict
 
 import maibox.config as config
 from flask import Flask, request, redirect, Response, send_file
@@ -16,7 +17,7 @@ from maibox.text_chat_handler import TextChatHandler
 from maibox.auto_bot import logout, send_ticket, dump_user_all, get_preview, query_ticket
 from maibox.orm import Dao
 from maibox.music_record_generate import render_html
-from maibox.utils import getLogger
+from maibox.utils import getLogger, check_wx_auth
 
 # 初始化日志记录器和Flask应用实例
 logger = getLogger(__name__)
@@ -34,7 +35,7 @@ wechat_handler = TextChatHandler(dao)
 def auth(func):
     def wrapper(*args, **kwargs):
         uid = list(map(int, request.args.get('uid').split("pp")))
-        if server_config["whitelist_enabled"]:
+        if server_config["settings"]["whitelist_enabled"]:
             if not dao.isWhitelist(uid[0]):
                 return {"is_disallowed": True}
         return func(*args, **kwargs)
@@ -95,11 +96,11 @@ def preview_app():
 @app.route('/api/frontend_config')
 def frontend_config():
     return {
-        "frontend_setting": config.get_config_with_reload()["frontend_setting"],
+        "frontend_setting": config.get_config_with_reload()["settings"]["frontend_setting"],
         "release_info": {
             "version": request.headers.get("X-Cloudbase-Version", "unknown"),
         },
-        "support_mai_version": list(map(int, server_config["data_version"].split("."))),
+        "support_mai_version": list(map(int, server_config["arcade_info"]["data_version"].split("."))),
         "time_avg": ""
     }
 
@@ -110,35 +111,6 @@ def get_user_music_record():
     resp.headers['Content-Disposition'] = f'attachment; filename="music_exported_{uid}_{int(time.time())}.html"'
     return resp
 
-@app.route('/api/wechat', methods=['POST', 'GET'], endpoint='wechat')
-def wechat():
-    version = request.headers.get("X-Cloudbase-Version", "unknown")
-    region = request.headers.get("X-Wx-Region", "unknown")
-    if request.headers.get("X-Wx-Appid", "") != server_config["wechat_app_id"]:
-        return "error", 403
-    if request.method == 'POST':
-        data = request.json
-        logger.info(data)
-        if "action" in data:
-            return "success"
-        else:
-            if data["MsgType"] == "event":
-                msg = wechat_handler.process_event(data["Event"], data["FromUserName"], version, region)
-            elif data["MsgType"] == "image":
-                msg = wechat_handler.process_img(data["PicUrl"], data["FromUserName"])
-            else:
-                msg = wechat_handler.process_chat(data["Content"], data["FromUserName"], version, region)
-            data = {
-                "FromUserName":data["ToUserName"],
-                "ToUserName":data["FromUserName"],
-                "CreateTime":int(time.time()),
-                "MsgType":"text",
-                "Content":msg
-            }
-            return json.dumps(data, ensure_ascii=False)
-    else:
-        return "success"
-
 @app.route('/img/b50')
 def img_b50():
     file_id = request.args.get('id', "")
@@ -147,8 +119,76 @@ def img_b50():
     filename = f"b50_{file_id}.jpg"
 
     if os.path.exists(f"img/{filename}"):
-        return send_file(f"../img/{filename}")
+        return send_file(os.path.join(os.getcwd(), "img", filename))
     elif os.path.exists(f"img/{filename}.flag"):
-        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片正在生成，请稍后</h1><script>setTimeout(()=>{location.reload()}, 500)</script>""", 404
+        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片正在生成，请稍后</h1><script>setTimeout(()=>{location.reload()}, 1500)</script>""", 404
     else:
         return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件id错误</h1>""", 404
+
+
+@app.route('/api/wechat', methods=['POST', 'GET'], endpoint='wechat')
+def wechat():
+    # 使用微信云托管方式接入微信公众号
+    version = request.headers.get("X-Cloudbase-Version", "unknown")
+    region = request.headers.get("X-Wx-Region", "unknown")
+    if request.headers.get("X-Wx-Appid", "") != server_config["wechat"]["app_id"]:
+        return "error", 403
+    if request.method == 'POST':
+        data = request.json
+        logger.info(data)
+        if "action" in data:
+            return "success"
+        else:
+            msg = ""
+            if data["MsgType"] == "event":
+                msg = wechat_handler.process_event(data["Event"], data["FromUserName"], version, region)
+            elif data["MsgType"] == "image":
+                msg = wechat_handler.process_img(data["PicUrl"], data["FromUserName"])
+            elif data["MsgType"] == "text":
+                msg = wechat_handler.process_chat(data["Content"], data["FromUserName"], version, region)
+            return json.dumps({
+                "FromUserName":data["ToUserName"],
+                "ToUserName":data["FromUserName"],
+                "CreateTime":int(time.time()),
+                "MsgType":"text",
+                "Content":msg
+            }, ensure_ascii=False)
+    else:
+        return "success"
+
+@app.route('/api/wechat/native', methods=['GET', 'POST'])
+def wechat_native():
+    # 使用传统方式接入微信公众号
+    version = region = "native_mode"
+    signature = request.args.get('signature')
+    timestamp = request.args.get('timestamp')
+    nonce = request.args.get('nonce')
+    if not check_wx_auth(signature, timestamp, nonce):
+        return ""
+    if request.method == "GET":
+        # 表示是第一次接入微信服务器的验证
+        return request.args.get('echostr')
+    elif request.method == "POST":
+        # 表示微信服务器转发消息过来
+        xml_str = request.data
+        if not xml_str:
+            return ""
+        # 对xml字符串进行解析
+        data = xmltodict.parse(xml_str)["xml"]
+        msg = ""
+        if data["MsgType"] == "event":
+            msg = wechat_handler.process_event(data["Event"], data["FromUserName"], version, region)
+        elif data["MsgType"] == "image":
+            msg = wechat_handler.process_img(data["PicUrl"], data["FromUserName"])
+        elif data["MsgType"] == "text":
+            msg = wechat_handler.process_chat(data["Content"], data["FromUserName"], version, region)
+        return xmltodict.unparse({
+            "xml":{
+                "FromUserName": data["ToUserName"],
+                "ToUserName": data["FromUserName"],
+                "CreateTime": int(time.time()),
+                "MsgType": "text",
+                "Content": msg
+            }
+        })
+

@@ -7,7 +7,7 @@ import requests
 
 from maibox.HTTPRequest import HTTPRequest
 
-from maibox.config import get_config, get_config_with_reload
+from maibox.config import get_config
 
 config = get_config()
 
@@ -57,7 +57,7 @@ region_map = [
 
 def get_preview(uid, dao):
     result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
-    if config["whitelist_enabled"] and dao:
+    if config["settings"]["whitelist_enabled"] and dao:
         if dao.isWhitelist(uid):
             result["is_in_whitelist"] = True
     else:
@@ -65,9 +65,9 @@ def get_preview(uid, dao):
     login_dict = {
         "userId": uid,
         "accessCode": "",
-        "regionId": config["region_id"],
-        "placeId": config["place_id"],
-        "clientId": config["key_chip"],
+        "regionId": config["arcade_info"]["region_id"],
+        "placeId": config["arcade_info"]["place_id"],
+        "clientId": config["arcade_info"]["key_chip"],
         "dateTime": int(time.time()),
         "isContinue": False,
         "genericFlag": 0
@@ -86,9 +86,9 @@ def send_ticket(uid, ticket_id):
     login_dict = {
         "userId": uid,
         "accessCode": "",
-        "regionId": config["region_id"],
-        "placeId": config["place_id"],
-        "clientId": config["key_chip"],
+        "regionId": config["arcade_info"]["region_id"],
+        "placeId": config["arcade_info"]["place_id"],
+        "clientId": config["arcade_info"]["key_chip"],
         "dateTime": int(time.time()),
         "isContinue": False,
         "genericFlag": 0
@@ -128,9 +128,9 @@ def send_ticket(uid, ticket_id):
                 "purchaseDate": timestamp_str,
                 "playCount": int(user_data["userData"]["playCount"]),
                 "playerRating": int(user_data["userData"]["playerRating"]),
-                "placeId": config["place_id"],
-                "regionId": config["region_id"],
-                "clientId": config["key_chip"],
+                "placeId": config["arcade_info"]["place_id"],
+                "regionId": config["arcade_info"]["region_id"],
+                "clientId": config["arcade_info"]["key_chip"],
             },
             "userCharge": {
                 "chargeId": ticket_id,
@@ -160,9 +160,9 @@ def logout(uid, timestamp=0):
     login_dict = {
         "userId": uid,
         "accessCode": "",
-        "placeId": config["place_id"],
-        "regionId": config["region_id"],
-        "clientId": config["key_chip"],
+        "placeId": config["arcade_info"]["place_id"],
+        "regionId": config["arcade_info"]["region_id"],
+        "clientId": config["arcade_info"]["key_chip"],
         "dateTime": timestamp,
         "isContinue": False,
         "type":5
@@ -191,9 +191,9 @@ def dump_user_all(uid):
     login_dict = {
         "userId": uid,
         "accessCode": "",
-        "regionId": config["region_id"],
-        "placeId": config["place_id"],
-        "clientId": config["key_chip"],
+        "regionId": config["arcade_info"]["region_id"],
+        "placeId": config["arcade_info"]["place_id"],
+        "clientId": config["arcade_info"]["key_chip"],
         "dateTime": login_time,
         "isContinue": False,
         "genericFlag": 0
@@ -295,4 +295,4 @@ def get_user_region(uid):
     return result
 
 def get_user_id_by_qr(qr_code):
-    return requests.get(f"{random.choice(config["chime_hosts"])}/api/qr?content={qr_code}").json()
+    return requests.get(f"{random.choice(config["urls"]["chime_hosts"])}/api/qr?content={qr_code}").json()

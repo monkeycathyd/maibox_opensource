@@ -40,7 +40,7 @@ class AutoTest(threading.Thread):
             try:
                 print("Title server testing")
                 ctime = int(time.time() * 1000)
-                if not get_preview(server_config["default_test_uid"], None):
+                if not get_preview(server_config["settings"]["default_test_uid"], None):
                     print("Title server testing failed")
                 else:
                     print("Title server testing success")

@@ -12,13 +12,14 @@ server_config = config.get_config()
 logger = getLogger(__name__)
 
 try:
+    logger.info(f"Running at {os.getcwd()}")
     if not os.path.exists("server_config.json"):
         logger.info("server_config.json not found.")
         os._exit(-1)
     if not os.path.exists("./img"):
         os.mkdir("./img")
-    host = config.get_config()["host"]
-    port = config.get_config()["port"]
+    host = server_config["server"]["host"]
+    port = server_config["server"]["port"]
     server = pywsgi.WSGIServer((host, port), app)
     logger.info(f"Server running at http://{host}:{port}")
     server.serve_forever()

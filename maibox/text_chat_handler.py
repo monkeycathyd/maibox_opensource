@@ -24,7 +24,7 @@ from maibox.utils import getLogger
 logger = getLogger(__name__)
 
 cfg = config.get_config()
-agreement = cfg["agreement"]["text"].replace("{place}", "公众号").replace("{negopt}", "取消关注")
+agreement = cfg["agreement"]["text"].format(place="公众号", negopt="取消关注")
 
 class TextChatHandler:
     def __init__(self, dao):
@@ -135,7 +135,7 @@ class TextChatHandler:
         else:
             ErrorEMailSender(f"发生错误: {err_uuid}", f"{e}\n{traceback_info}").start()
 
-            if wxid in cfg["wxid_admins"]:
+            if wxid in cfg["wechat"]["wxid_admins"]:
                 return_msg = f"发生错误：{e}\n(错误日志已发送，识别码：{err_uuid})"
             else:
                 return_msg = f"发生错误，请联系管理员\n(错误日志已发送，识别码：{err_uuid})"
@@ -337,7 +337,7 @@ class TextChatHandler:
     def handle_admin(self, wxid: str, content: str, version: str, region: str):
         split_content = self.final_word_cut(content)
         return_msg = ""
-        if wxid not in cfg["wxid_admins"]:
+        if wxid not in cfg["wechat"]["wxid_admins"]:
             return_msg = ai_chat(content.strip())
         else:
             if len(split_content) > 1 and split_content[1] in self.admin_command_map:
@@ -470,5 +470,5 @@ class TextChatHandler:
             f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
         filename = f"b50_{file_id}.jpg"
         threading.Thread(target=b50call, args=(username, filename, nickname, icon_id,)).start()
-        return_msg += f"b50图片获取地址：\n{cfg["api_url"]}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载"
+        return_msg += f"b50图片获取地址：\n{cfg["urls"]["api_url"]}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载"
         return return_msg
