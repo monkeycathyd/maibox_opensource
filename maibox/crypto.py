@@ -1,10 +1,18 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
-import maibox.config as config
+from maibox.config import get_config
+from maibox.utils import is_hex_string
 
-AES_KEY = bytes.fromhex(config.get_config()["crypto"]["aes_key"])
-AES_IV = bytes.fromhex(config.get_config()["crypto"]["aes_iv"])
+if is_hex_string(get_config()["crypto"]["aes_key"]):
+    AES_KEY = bytes.fromhex(get_config()["crypto"]["aes_key"])
+else:
+    AES_KEY = bytes.fromhex(get_config()["crypto"]["aes_key"].encode('utf-8').hex())
+
+if is_hex_string(get_config()["crypto"]["aes_iv"]):
+    AES_IV = bytes.fromhex(get_config()["crypto"]["aes_iv"])
+else:
+    AES_IV = bytes.fromhex(get_config()["crypto"]["aes_iv"].encode('utf-8').hex())
 
 class CipherAES:
     BLOCK_SIZE = 128

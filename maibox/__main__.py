@@ -13,9 +13,6 @@ logger = getLogger(__name__)
 
 try:
     logger.info(f"Running at {os.getcwd()}")
-    if not os.path.exists("server_config.json"):
-        logger.info("server_config.json not found.")
-        os._exit(-1)
     if not os.path.exists("./img"):
         os.mkdir("./img")
     host = server_config["server"]["host"]

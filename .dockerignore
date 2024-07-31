@@ -1,3 +1,6 @@
-server_config.json
+./server_config.*
 test.py
 ./img/
+./assets/
+*.md
+*.demo.*

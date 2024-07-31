@@ -57,6 +57,8 @@ class ErrorEMailSender(threading.Thread):
         self.content = content
 
     def run(self):
+        if not server_config["email"]["enable"]:
+            return
         time.sleep(0.5)
         sender_email = server_config["email"]["sender"]
         password = server_config["email"]["password"]

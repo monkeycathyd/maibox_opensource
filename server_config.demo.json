@@ -10,8 +10,8 @@
     "api_url": "https://api.maibox.example.com"
   },
   "request":{
-    "request_timeout": 2,
-    "request_retry_times": 3
+    "timeout": 2,
+    "retry_times": 3
   },
   "arcade_info":{
     "key_chip": "A00E11E4514",
@@ -36,7 +36,13 @@
     "database": "maibox"
   },
   "settings":{
-    "whitelist_enabled": true,
+    "whitelist":{
+      "enable": true,
+      "join_tips": {
+        "not_exist": "",
+        "exist": ""
+      }
+    },
     "default_test_uid": 10000000,
     "frontend_setting": {
       "theme_color": "#ffa900",

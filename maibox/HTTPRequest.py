@@ -21,8 +21,8 @@ class HTTPRequest:
         self._title_server_uri = random.choice(cfg["urls"]["title_server_url"])
         self._obfuscate_param = cfg["crypto"]["obfuscate_param"]
         self._key_chip = cfg["arcade_info"]["key_chip"]
-        self._timeout = cfg["request"]["request_timeout"]
-        self._max_retry = cfg["request"]["request_retry_times"]
+        self._timeout = cfg["request"]["timeout"]
+        self._max_retry = cfg["request"]["retry_times"]
         self._uid = uid
         self._mai_encoding = cfg["crypto"]["mai_encoding"]
 

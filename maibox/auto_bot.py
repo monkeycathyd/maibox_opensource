@@ -6,58 +6,14 @@ from datetime import datetime, timedelta
 import requests
 
 from maibox.HTTPRequest import HTTPRequest
-
 from maibox.config import get_config
+from maibox.constants import ticket_define, region_map
 
 config = get_config()
 
-
-ticket_define = {
-    2:{"id": 2,"cost": 1},
-    3:{"id": 3,"cost": 2},
-    4:{"id": 4,"cost": 3},
-    5:{"id": 5,"cost": 4},
-    6:{"id": 6,"cost": 5}
-}
-
-region_map = [
-    "北京市",
-    "重庆市",
-    "上海市",
-    "天津市",
-    "安徽省",
-    "福建省",
-    "甘肃省",
-    "广东省",
-    "贵州省",
-    "海南省",
-    "河北省",
-    "黑龙江省",
-    "河南省",
-    "湖北省",
-    "湖南省",
-    "江苏省",
-    "江西省",
-    "吉林省",
-    "辽宁省",
-    "青海省",
-    "陕西省",
-    "山东省",
-    "山西省",
-    "四川省",
-    "台湾省",
-    "云南省",
-    "浙江省",
-    "广西壮族自治区",
-    "内蒙古自治区",
-    "宁夏回族自治区",
-    "新疆维吾尔自治区",
-    "西藏自治区"
-]
-
 def get_preview(uid, dao):
     result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
-    if config["settings"]["whitelist_enabled"] and dao:
+    if config["settings"]["whitelist"]["enable"] and dao:
         if dao.isWhitelist(uid):
             result["is_in_whitelist"] = True
     else:

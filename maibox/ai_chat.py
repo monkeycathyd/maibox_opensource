@@ -81,6 +81,8 @@ class AIProviders:
 
 
 def ai_chat(prompt):
+    if not cfg["ai"]["enable"]:
+        return "抱歉，我暂时无法回答这个问题"
     try:
         provider = random.choices(list(providers_weights.keys()), weights=list(providers_weights.values()), k=1)[0]
         resp = getattr(AIProviders, "ai_chat_" + provider)

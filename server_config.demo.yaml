@@ -1,0 +1,70 @@
+agreement:
+  date: '20240721'  # 协议日期
+  text: 使用协议  # 协议内容
+ai:
+  enable: false # 是否启用AI
+  ali_ai_key: "" # 阿里云AI大模型token
+  setting_prompt: 在接下来的所有对话中，使用中文回答，且尽量保持回答言简意赅。以上条件对于你以下问题及之后的回复完全适用。  # AI提示词
+  tencent_api: # 腾讯云API
+    secret_id: ""
+    secret_key: ""
+arcade_info:  # 机台信息
+  data_version: 1.00.00 # 游戏数据版本
+  key_chip: A00E11E4514 # 机台keychip
+  place_id: 14 # 机台地区id
+  place_name: example # 机台所在的店铺名称
+  region_id: 1145 # 店铺id
+  version: 1.00.00 # 游戏软件版本
+crypto:
+  aes_iv: aes_iv # AES加密向量（请自行寻找相关值）
+  aes_key: aes_key # AES加密密钥（请自行寻找相关值）
+  mai_encoding: '1.00' # 加密版本
+  obfuscate_param: obfuscate_param # api混淆参数
+database:
+  database: maibox # 数据库名
+  host: localhost # 数据库地址
+  password: password # 数据库密码
+  port: 3306 # 数据库端口
+  type: mysql # 数据库类型（仅支持mysql）
+  user: root # 数据库用户名
+email:
+  enable: true # 是否启用邮件通知
+  host: smtp.example.com # smtp地址
+  password: password # smtp密码
+  port: 25 # smtp端口
+  receiver: # 收件人列表
+    - example@example.work
+  sender: example@example.com # 发件人
+log:
+  format: '%(asctime)s - %(pathname)s - %(levelname)s - %(message)s' # 日志格式
+  level: debug # 日志级别
+request:
+  request_retry_times: 3 # 请求重试次数
+  request_timeout: 2 # 请求超时时间
+server:
+  host: 0.0.0.0 # 服务器地址
+  port: 80 # 服务器端口
+settings:
+  default_test_uid: 10000000 # 默认测试用户id
+  frontend_setting:
+    theme_color: '#ffa900'  # 前端主题颜色
+    whitelist_btn_ids: # 前端按钮白名单禁用列表
+      - send_ticket
+  whitelist: # 白名单
+    enable: true # 是否启用白名单
+    join_tips: # 白名单申请提示
+      not_exist: ""  # 用户不在白名单提示
+      exist: "" # 用户已在白名单提示
+urls:
+  api_url: https://api.maibox.example.com  # API URL地址
+  chime_hosts:  # 随机选择一个Chime解析服务器
+    - http://chime.example.com
+  main_url: https://maibox.example.com  # 前端URL地址
+  title_server_url:  # 随机选择一个标题服务器
+    - https://maimai.example.com/Maimai2Servlet/
+wechat:  # 微信公众号配置
+  app_id: app_id  # 公众号appid
+  app_secret: app_secret  # 公众号appsecret
+  token: token  # 公众号token
+  wxid_admins:  # 管理员列表（微信openid哈希）
+    - admin1

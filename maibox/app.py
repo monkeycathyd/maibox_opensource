@@ -1,23 +1,31 @@
 # 导入必要的模块和包，用于实现应用程序的功能
 import os
+import platform
 import re
 import traceback
 import uuid
 import json
 import time
+from datetime import datetime
 
+import urllib3
 import xmltodict
 
 import maibox.config as config
 from flask import Flask, request, redirect, Response, send_file
 from flask_cors import CORS
 
-from maibox.automate import ErrorEMailSender
+from maibox import chime
+from maibox.SocketHttps import HttpClient
+from maibox.process_threads import ErrorEMailSender
 from maibox.text_chat_handler import TextChatHandler
 from maibox.auto_bot import logout, send_ticket, dump_user_all, get_preview, query_ticket
 from maibox.orm import Dao
 from maibox.music_record_generate import render_html
 from maibox.utils import getLogger, check_wx_auth
+
+server_url = "https://maimai-gm.wahlap.com:42081/Maimai2Servlet/"
+server = urllib3.util.parse_url(server_url)
 
 # 初始化日志记录器和Flask应用实例
 logger = getLogger(__name__)
@@ -35,7 +43,7 @@ wechat_handler = TextChatHandler(dao)
 def auth(func):
     def wrapper(*args, **kwargs):
         uid = list(map(int, request.args.get('uid').split("pp")))
-        if server_config["settings"]["whitelist_enabled"]:
+        if server_config["settings"]["whitelist"]["enable"]:
             if not dao.isWhitelist(uid[0]):
                 return {"is_disallowed": True}
         return func(*args, **kwargs)
@@ -65,6 +73,62 @@ def error_handler(e):
 @app.route('/')
 def index():
     return redirect(server_config["main_url"])
+
+@app.route('/img/b50')
+def img_b50():
+    file_id = request.args.get('id', "")
+    if not re.match(r'^[0-9a-z]+$', file_id):
+        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件ID错误</h1>""", 404
+    filename = f"b50_{file_id}.jpg"
+    filepath = os.path.join(os.getcwd(), "img", filename)
+    if os.path.exists(filepath):
+        return send_file(filepath)
+    elif os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.flag")):
+        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片正在生成，请稍后</h1><script>setTimeout(()=>{location.reload()}, 1500)</script>""", 404
+    else:
+        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件id错误</h1>""", 404
+
+@app.route('/Maimai2Servlet/<api>', methods=['POST'], endpoint='proxy')
+def proxy(api):
+    header = {
+        "Content-Type": "application/json",
+        "User-Agent": request.headers.get("User-Agent"),
+        "charset": request.headers.get("charset", "UTF-8"),
+        "Mai-Encoding":request.headers.get("Mai-Encoding"),
+        "Content-Encoding": "deflate",
+        "Content-Length": request.content_length,
+        "Host": server.host,
+    }
+    resp = HttpClient.post(urllib3.util.parse_url(server_url + api), header, request.data)
+    response = Response(resp["body"], mimetype="application/json")
+    response.status_code = int(resp["status_code"])
+    for key, value in resp["headers"].items():
+        response.headers[key] = value
+    return response
+
+@app.route('/api/qr', methods=['GET'], endpoint='qr')
+def qr():
+    if platform.system() != "Windows":
+        return {
+            "userID": 0,
+            "errorID": 88,
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:]
+        }
+    content = request.args.get('content')
+    if not(content.startswith("SGWCMAID") and len(content) == 84 and bool(re.match(r'^[0-9A-F]+$', content[20:]))):
+        return {
+            "userID": 0,
+            "errorID": 99,
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
+        }
+    getUserData = chime.GetUserData('MAID', 'A63E-01E11910000', '', content[20:])
+    while not getUserData.is_end():
+        getUserData.execute()
+    return {
+        "userID": getUserData.get_user_id(),
+        "errorID": getUserData.get_error_id(),
+        "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
+    }
 
 @app.route('/api/logout', endpoint='logout')
 def logout_app():
@@ -110,21 +174,6 @@ def get_user_music_record():
     resp = Response(render_html(uid), mimetype='application/octet-stream')
     resp.headers['Content-Disposition'] = f'attachment; filename="music_exported_{uid}_{int(time.time())}.html"'
     return resp
-
-@app.route('/img/b50')
-def img_b50():
-    file_id = request.args.get('id', "")
-    if not re.match(r'^[0-9a-z]+$', file_id):
-        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件id错误</h1>""", 404
-    filename = f"b50_{file_id}.jpg"
-
-    if os.path.exists(f"img/{filename}"):
-        return send_file(os.path.join(os.getcwd(), "img", filename))
-    elif os.path.exists(f"img/{filename}.flag"):
-        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片正在生成，请稍后</h1><script>setTimeout(()=>{location.reload()}, 1500)</script>""", 404
-    else:
-        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件id错误</h1>""", 404
-
 
 @app.route('/api/wechat', methods=['POST', 'GET'], endpoint='wechat')
 def wechat():

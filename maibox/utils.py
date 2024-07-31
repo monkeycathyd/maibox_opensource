@@ -17,6 +17,10 @@ def check_wx_auth(signature, timestamp, nonce):
     hashcode = sha1.hexdigest()
     return hashcode == signature
 
+def is_hex_string(s):
+    hex_chars = set("0123456789abcdef")
+    return all(c in hex_chars for c in s)
+
 def getLogger(name):
     logging.basicConfig(level=logging.getLevelName(cfg["log"]["level"].upper()), format=cfg["log"]["format"])
 
