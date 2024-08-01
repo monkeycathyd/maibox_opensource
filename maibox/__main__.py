@@ -3,13 +3,13 @@ import platform
 import sys
 import time
 
-import maibox.config as config
 from gevent import pywsgi
 
+from maibox.config import get_config
 from maibox.app import app
 from maibox.utils import getLogger
 
-server_config = config.get_config()
+server_config = get_config()
 
 logger = getLogger(__name__)
 

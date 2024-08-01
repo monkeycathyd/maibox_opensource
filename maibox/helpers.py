@@ -141,8 +141,7 @@ def logout(uid, timestamp=0):
 def dump_user_all(uid):
     result = {"is_success": False, "is_got_qr_code": True, "is_error": False, "user_id": uid, "data": {}, "msg": ""}
 
-    available_attrs = ["UserData", "UserExtend", "UserOption", "UserActivity", "UserCharacter", "UserItem",
-                       "UserLoginBonus", "UserMap", "UserMusic"]
+    available_attrs = ["UserData","UserExtend","UserOption","UserCharacter","UserMap","UserLoginBonus","UserRating","UserItem","UserMusic","UserCourse","UserCharge"]
     data = {}
 
     login_time = int(time.time())
@@ -195,29 +194,6 @@ def dump_user_all(uid):
                 break
             except Exception as e:
                 continue
-    data["userFavoriteList"] = []
-    data["userFriendSeasonRankingList"] = []
-    data["userGeneralDataList"] = []
-    data["userPlaylogList"] = []
-    data["userRateList"] = []
-    data["userUdemae"] = {
-        "rate": 0,
-        "maxRate": 0,
-        "classValue": 0,
-        "maxClassValue": 0,
-        "totalWinNum": 0,
-        "totalLoseNum": 0,
-        "maxWinNum": 0,
-        "maxLoseNum": 0,
-        "winNum": 0,
-        "loseNum": 0,
-        "npcTotalWinNum": 0,
-        "npcTotalLoseNum": 0,
-        "npcMaxWinNum": 0,
-        "npcMaxLoseNum": 0,
-        "npcWinNum": 0,
-        "npcLoseNum": 0
-    }
 
     if not preview["isLogin"]:
         request.Request("UserLogoutApiMaimaiChn", login_dict)
