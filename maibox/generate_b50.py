@@ -443,5 +443,6 @@ def call(fish_username, filename, nickname=None, icon_id=None, wechat_utils: Wec
                 "media_id": str(wechat_utils.send_temp_img(f"./img/{filename}"))
             }
         })
+        os.remove(f"./img/{filename}")
 
     os.remove(f"./img/{filename}.flag")
