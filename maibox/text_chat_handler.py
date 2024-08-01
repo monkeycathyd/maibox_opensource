@@ -507,5 +507,5 @@ class TextChatHandler:
             f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
         filename = f"b50_{file_id}.jpg"
         threading.Thread(target=b50call, args=(username, filename, nickname, icon_id,)).start()
-        return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["api_url"], file_id=file_id)
+        return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
         return return_msg

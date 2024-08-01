@@ -72,7 +72,7 @@ def error_handler(e):
 # 应用的路由和处理函数，实现不同的API接口
 @app.route('/', methods=['GET'], endpoint='index')
 def index():
-    return redirect(server_config["main_url"])
+    return redirect(server_config["urls"]["main_url"])
 
 @app.route('/img/b50', methods=['GET'], endpoint='img_b50')
 def img_b50():

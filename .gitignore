@@ -1,3 +1,7 @@
 /img/
-./.venv/
-./.idea/
+./.venv/*
+./.idea/*
+*.pyc
+server_config.*
+test.py
+*.xml
