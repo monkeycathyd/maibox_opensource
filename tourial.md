@@ -11,7 +11,7 @@
 
 ### 第零步：安装并配置python、pip和mysql环境，python版本必须大于等于3.12，mysql版本大于等于8.0
 
-#### 第一步：克隆这个项目到本地，打开项目文件夹，安装相关依赖`pip install -r requirements.txt`
+#### 第一步：克隆这个项目到本地，打开项目文件夹，安装相关依赖 `pip install -r requirements.txt`
 
 #### 第二步：根据项目目录下的server_config.demo.yaml的注释编辑配置文件并将其另存为server_config.yaml放置在项目目录下
 
