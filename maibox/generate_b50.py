@@ -358,14 +358,14 @@ def getRandomPlate():
     return rf"{maimaiImgPath}/plate/normal/{plateList[random.randint(0, len(plateList) - 1)]}"
 
 def getRandomIcon():
-    iocnList = []
+    iconList = []
     for root, dirs, files in os.walk(rf'{maimaiImgPath}/icon'):
         for file in files:
             file = str(os.path.join(file))
             if 'UI_Icon' not in file:
                 continue
-            iocnList.append(file)
-    return rf"{maimaiImgPath}/icon/{iocnList[random.randint(0, len(iocnList) - 1)]}"
+            iconList.append(file)
+    return rf"{maimaiImgPath}/icon/{iconList[random.randint(0, len(iconList) - 1)]}"
 
 
 def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Image.Image:
