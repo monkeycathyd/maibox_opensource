@@ -1,4 +1,6 @@
 from urllib import parse
+from typing import List, Tuple
+
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -84,7 +86,7 @@ class Dao:
             self._session.rollback()
             return False
 
-    def get_df_account(self, wxid: str) -> [str, str]:
+    def get_df_account(self, wxid: str) -> Tuple[str, str]:
         try:
             df_bind = self._session.query(DfBind).filter(DfBind.wxid == wxid).first()
             if not df_bind:

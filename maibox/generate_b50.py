@@ -368,7 +368,7 @@ def getRandomIcon():
     return rf"{maimaiImgPath}/icon/{iocnList[random.randint(0, len(iocnList) - 1)]}"
 
 
-def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> (Optional[Image.Image], bool):
+def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Image.Image:
     resp = requests.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload)
     if resp.status_code == 400:
         return None
