@@ -92,6 +92,8 @@ class TextChatHandler:
         return_msg = ""
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
         qr_content = self.decode_qr_from_url(url)
+        if 4 <= int(time.strftime("%H")) < 7:
+            return "服务器维护期间暂停对外服务，请于北京时间7:00后再试"
         if qr_content and ((len(qr_content) == 84) and qr_content.startswith("SGWCMAID") and qr_content[8:20].isdigit() and bool(re.match(r'^[0-9A-F]+$', qr_content[20:]))):
             result = self.getUserIDByQR(qr_content)
             uid = result["userID"]
@@ -132,6 +134,8 @@ class TextChatHandler:
         return return_msg
 
     def process_chat(self,content, wxid, version="", region=""):
+        if 4 <= int(time.strftime("%H")) < 7:
+            return "服务器维护期间暂停对外服务，请于北京时间 7:00 后再试"
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
         return_msg = ""
         try:
@@ -354,13 +358,13 @@ class TextChatHandler:
         return self.region(wxid)
 
     def handle_ai(self, wxid: str, content: str, version: str, region: str):
-        return ai_chat(content.strip())
+        return ai_chat(content.strip(), wxid)
 
     def handle_admin(self, wxid: str, content: str, version: str, region: str):
         split_content = self.final_word_cut(content)
         return_msg = ""
         if wxid not in cfg["wechat"]["wxid_admins"]:
-            return_msg = ai_chat(content.strip())
+            return_msg = ai_chat(content.strip(), wxid)
         else:
             if len(split_content) > 1 and split_content[1] in self.admin_command_map:
                 return_msg = self.admin_command_map[split_content[1]](content)
@@ -425,9 +429,9 @@ class TextChatHandler:
     def bind(self,uid,wxid):
         bind = self.dao.bind(uid, wxid)
         if bind:
-            return "绑定成功，如需解绑，发送 “解绑” 解绑"
+            return "绑定成功，如需解绑，发送 “解绑” 以解绑"
         else:
-            return "绑定失败，您已经绑定过UserID，如需解绑，发送 “解绑” 解绑"
+            return "绑定失败，您已经绑定过UserID，如需解绑，发送 “解绑” 以解绑"
 
     def unbind(self,wxid):
         unbind = self.dao.unbind(wxid)
@@ -467,7 +471,7 @@ class TextChatHandler:
                 user_region = helpers.get_user_region(uid)["data"]
                 text = "你目前一共在{length}个地区出过勤: \n".format(length=user_region["length"])
                 for i in range(len(user_region["userRegionList"])):
-                    text += "\n{order}.{regionName}\n勤过{playCount}次\n首次记录于{created}".format(
+                    text += "\n{order}. 在 {regionName} 勤过{playCount}次\n首次记录于{created}".format(
                         order=i+1,
                         regionName=user_region["userRegionList"][i]['regionName'],
                         playCount=user_region["userRegionList"][i]['playCount'],

@@ -22,7 +22,11 @@ def is_hex_string(s):
 def getLogger(name):
     logging.basicConfig(level=logging.getLevelName(cfg["log"]["level"].upper()), format=cfg["log"]["format"])
     logger = logging.getLogger(name)
-    logger.addHandler(logging.StreamHandler())
-    logger.addHandler(logging.FileHandler('logging.log'))
+
+    file_handler = logging.FileHandler("logging.log", encoding="utf-8")
+    file_handler.setFormatter(logging.Formatter(cfg["log"]["format"]))
+    file_handler.setLevel(logging.getLevelName(cfg["log"]["level"].upper()))
+    logger.addHandler(file_handler)
+
     return logger
 
