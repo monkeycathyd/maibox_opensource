@@ -8,6 +8,8 @@ import requests
 from typing import Optional, Dict, List
 from PIL import Image, ImageDraw, ImageFont
 
+from maibox.wechat import WechatUtils
+
 logger = logging.getLogger(__name__)
 
 scoreRank = ['D', 'C', 'B', 'BB', 'BBB', 'A', 'AA', 'AAA', 'S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+']
@@ -426,10 +428,20 @@ def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> (O
     return drawBaseImg(sd, dx, B35Rating, B15Rating, int(obj['additional_rating']), obj["user_general_data"], obj["nickname"], plate, icon, filename)
 
 
-def call(fish_username, filename, nickname=None, icon_id=None):
+def call(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatUtils = None, non_hashed_wxid: str=""):
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
     B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
     B50Img = B50Img.resize((int(B50Img.width / 5) * 4, int(B50Img.height / 5) * 4))
     B50Img.save(f"./img/{filename}", format="jpeg", quality=90)
+
+    if wechat_utils and (not wechat_utils.limited_mode):
+        wechat_utils.reply_msg({
+            "touser": non_hashed_wxid,
+            "msgtype": "image",
+            "image": {
+                "media_id": str(wechat_utils.send_temp_img(f"./img/{filename}"))
+            }
+        })
+
     os.remove(f"./img/{filename}.flag")

@@ -10,10 +10,10 @@ ai:
     secret_key: ""
 arcade_info:  # 机台信息
   data_version: 1.00.00 # 游戏数据版本
-  key_chip: A00E11E4514 # 机台keychip
-  place_id: 14 # 机台地区id（必须与keychip对应）
-  place_name: example # 机台所在的店铺名称（必须与keychip对应）
-  region_id: 1145 # 店铺id（必须与keychip对应）
+  key_chip: A00E11E4514 # 机台keychip（请自行寻找相关值）
+  place_id: 14 # 机台地区id（必须与keychip对应，请自行寻找相关值）
+  place_name: example # 机台所在的店铺名称（必须与keychip对应，请自行寻找相关值）
+  region_id: 1145 # 店铺id（必须与keychip对应，请自行寻找相关值）
   version: 1.00.00 # 游戏软件版本
 crypto:
   aes_iv: aes_iv # AES加密向量（请自行寻找相关值）
@@ -64,6 +64,7 @@ urls:
 wechat:  # 微信公众号配置
   app_id: app_id  # 公众号appid
   app_secret: app_secret  # 公众号appsecret
+  limited_mode: true  # 是否开启受限模式（始终与用户保持文本交互，禁用该功能前请确保公众号可以正常使用临时素材和客服消息）
   token: token  # 公众号token
   wxid_admins:  # 管理员列表（微信openid哈希）
     - admin1

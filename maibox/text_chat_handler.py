@@ -21,6 +21,7 @@ from maibox.ai_chat import ai_chat
 from maibox import fish_sync
 from maibox.generate_b50 import call as b50call
 from maibox.utils import getLogger, get_version_label
+from maibox.wechat import WechatUtils
 
 logger = getLogger(__name__)
 
@@ -30,6 +31,8 @@ agreement = cfg["agreement"]["text"].format(place="公众号", negopt="取消关
 class TextChatHandler:
     def __init__(self, dao):
         self.dao = dao
+        self._limited_mode = cfg["wechat"].get("limited_mode", True)
+        self._wechat_utils = WechatUtils()
         self.command_map = {
             '同步': self.handle_sync, #
             '看我': self.handle_preview, #
@@ -142,19 +145,29 @@ class TextChatHandler:
         try:
             split_content = self.final_word_cut(content)
             if split_content[0] in self.command_map:
-                return_msg = self.command_map[split_content[0]](hashed_wxid, content, version, region)
+                return_msg = self.command_map[split_content[0]](hashed_wxid, content, version, region, wxid)
             else:
-                return_msg = self.handle_ai(hashed_wxid, content, version, region)
+                return_msg = self.handle_ai(hashed_wxid, content, version, region, wxid)
         except Exception as e:
-            return_msg = self.handle_error(wxid, content, version, region, e)
+            return_msg = self.handle_error(hashed_wxid, content, version, region, wxid, e)
         finally:
             logger.info(f"Hashed User OpenID: {hashed_wxid}")
             logger.info(f"User: {wxid}\nSend: {content}\nResponse: {return_msg}")
 
-        return return_msg
+        if self._limited_mode:
+            return return_msg
+        else:
+            self._wechat_utils.reply_msg({
+                "touser": wxid,
+                "msgtype": "text",
+                "text":{
+                    "content": return_msg
+                }
+            })
+            return ""
 
 
-    def handle_error(self, wxid: str, content: str, version: str, region: str, e: BaseException):
+    def handle_error(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str="", e: BaseException=Exception()):
         traceback_info = traceback.format_exc()
         err_uuid = uuid.uuid1()
         logger.error(f"Error {err_uuid}: {e}\n{traceback_info}")
@@ -171,10 +184,10 @@ class TextChatHandler:
 
         return return_msg
 
-    def handle_agreement(self, wxid: str, content: str, version: str, region: str):
+    def handle_agreement(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return agreement
 
-    def handle_whitelist_join(self, wxid: str, content: str, version: str, region: str):
+    def handle_whitelist_join(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         my_preview = self.preview(wxid)
         if not my_preview:
             return_msg = "你还没有绑定，发送 “绑定 [你的UserID]” 绑定"
@@ -186,14 +199,14 @@ class TextChatHandler:
 
         return return_msg
 
-    def handle_version(self, wxid: str, content: str, version: str, region: str):
+    def handle_version(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return_msg = "当前版本: {version} ({region})".format(version=version, region=region)
         return return_msg
 
-    def handle_help(self, wxid: str, content: str, version: str, region: str):
+    def handle_help(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return "帮助\n直接发送带有登入二维码的图片即可解析并绑定UserID\n发送 “绑定 [你的UserID或二维码内容]” 绑定UserID到微信\n发送 “润 [UserID]” 解小黑屋（已废弃）\n发送 “看我” 查看我的信息\n发送 “解绑” 解绑UserID\n发送 “解析 [二维码内容]” 解析UserID\n发送 “发票 [跑图票倍数2-6之间]” 进行发票（限时解禁）\n发送 “查票” 查询当前跑图票记录\n发送 “足迹” 查看当前出勤地区记录\n发送 “同步” 同步当前乐曲数据到水鱼查分器\n发送 “b50” 生成B50图片\n发送 “加入白名单” 以获取指引\n发送 “使用须知” 以查阅条款内容\n\n当前版本: {version} ({region})".format(version=version, region=region)
 
-    def handle_bind(self, wxid: str, content: str, version: str, region: str):
+    def handle_bind(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         if len(split_content) == 2:
             if split_content[-1].isdigit():  # 如果是User ID
@@ -224,10 +237,10 @@ class TextChatHandler:
         else:
             return_msg = "未指定UserID，发送 “绑定 [你的UserID或二维码内容]” 绑定"
         return return_msg
-    def handle_unbind(self, wxid: str, content: str, version: str, region: str):
+    def handle_unbind(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return self.unbind(wxid)
 
-    def handle_logout(self, wxid: str, content: str, version: str, region: str):
+    def handle_logout(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         if len(split_content) == 3:
             return_msg = helpers.logout(int(split_content[1]), int(split_content[2]))["msg"]
@@ -239,7 +252,7 @@ class TextChatHandler:
                 return_msg = "未绑定或未指定UserID，发送 “绑定 [你的UserID]” 绑定或发送 “润 [UserID] [秒级Unix时间戳]” 解小黑屋"
         return return_msg
 
-    def handle_preview(self, wxid: str, content: str, version: str, region: str):
+    def handle_preview(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         my_preview = self.preview(wxid)
         return_msg = ""
         if not my_preview:
@@ -266,7 +279,7 @@ class TextChatHandler:
 
         return return_msg
 
-    def handle_resolve(self, wxid: str, content: str, version: str, region: str):
+    def handle_resolve(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         if len(split_content) != 2:
             return_msg = "发送 “解析 [二维码内容]” 解析UserID"
@@ -280,7 +293,7 @@ class TextChatHandler:
                 return_msg = "解析失败，请检查二维码是否正确"
         return return_msg
 
-    def handle_send_ticket(self, wxid: str, content: str, version: str, region: str):
+    def handle_send_ticket(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         if len(split_content) != 2:
             return_msg = "发送 “发券 [倍数]” 发送倍券"
@@ -303,7 +316,7 @@ class TextChatHandler:
 
         return return_msg
 
-    def handle_query_ticket(self, wxid: str, content: str, version: str, region: str):
+    def handle_query_ticket(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         uid = self.dao.getUid(wxid)
         data = helpers.query_ticket(uid)
         message = "用户ID: {userId}\n倍券类型数量: {length}\n倍券列表:\n".format(
@@ -321,7 +334,7 @@ class TextChatHandler:
         return_msg = message
         return return_msg
 
-    def handle_sync(self, wxid: str, content: str, version: str, region: str):
+    def handle_sync(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         return_msg = ""
         flag = False
@@ -352,16 +365,16 @@ class TextChatHandler:
                 return_msg += "同步失败，请检查用户名和密码是否正确"
         return return_msg
 
-    def handle_b50(self, wxid: str, content: str, version: str, region: str):
-        return self.b50(wxid)
+    def handle_b50(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
+        return self.b50(wxid, non_hashed_wxid)
 
-    def handle_region(self, wxid: str, content: str, version: str, region: str):
+    def handle_region(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return self.region(wxid)
 
-    def handle_ai(self, wxid: str, content: str, version: str, region: str):
+    def handle_ai(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return ai_chat(content.strip(), wxid)
 
-    def handle_admin(self, wxid: str, content: str, version: str, region: str):
+    def handle_admin(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         return_msg = ""
         if wxid not in cfg["wechat"]["wxid_admins"]:
@@ -492,7 +505,7 @@ class TextChatHandler:
         else:
             return None
 
-    def b50(self, wxid):
+    def b50(self, wxid, non_hashed_wxid=""):
         return_msg = ""
         username, password = self.dao.get_df_account(wxid)
         uid = self.dao.getUid(wxid)
@@ -511,6 +524,7 @@ class TextChatHandler:
         file_id = hashlib.md5(
             f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
         filename = f"b50_{file_id}.jpg"
-        threading.Thread(target=b50call, args=(username, filename, nickname, icon_id,)).start()
-        return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
-        return return_msg
+        threading.Thread(target=b50call, args=(username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
+        if self._limited_mode:
+            return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
+        return return_msg.strip()
