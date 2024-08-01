@@ -30,3 +30,11 @@ def getLogger(name):
 
     return logger
 
+def get_version_label(code: int, string: str=""):
+    if code == 0:
+        return string
+    code = code - 1
+    if code // 26 == 0:
+        return string + chr(code % 26 + ord('A'))
+    return get_version_label(code // 26 - 1, string + chr(code % 26 + ord('A')))
+

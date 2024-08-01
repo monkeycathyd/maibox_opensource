@@ -20,7 +20,8 @@ from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
 from maibox import fish_sync
 from maibox.generate_b50 import call as b50call
-from maibox.utils import getLogger
+from maibox.utils import getLogger, get_version_label
+
 logger = getLogger(__name__)
 
 cfg = config.get_config()
@@ -246,7 +247,7 @@ class TextChatHandler:
         if isinstance(my_preview, str):
             return_msg = my_preview
         elif isinstance(my_preview, dict):
-            last_game_data_character = int(my_preview["data"]["lastDataVersion"].split(".")[-1])
+            last_game_data_character = get_version_label(int(my_preview["data"]["lastDataVersion"].split(".")[-1]))
             last_rom_ver_tuple = tuple(map(int, my_preview["data"]["lastRomVersion"].split(".")))
             last_data_ver_tuple = tuple(map(int, my_preview["data"]["lastDataVersion"].split(".")))
 
@@ -257,7 +258,7 @@ class TextChatHandler:
                 user_name=my_preview["data"]["userName"],
                 player_rating=my_preview["data"]["playerRating"],
                 rom_version=".".join(my_preview["data"]["lastRomVersion"].split(".")[0:2]),
-                data_char="-{char}".format(char=chr(ord("A") - 1 + last_game_data_character)) if last_game_data_character > 0 else "",
+                data_char="-{char}".format(char=last_game_data_character),
                 ban_state=["正常", "警告", "封禁"][my_preview["data"]["banState"]],
                 login_status="正在上机" if my_preview["data"]["isLogin"] else "未上机",
                 whitelist_status="你当前是受邀用户\n" if my_preview["is_in_whitelist"] else ""
