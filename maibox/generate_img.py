@@ -212,7 +212,7 @@ def drawSignleImg(data,count):
     raImg = Image.open(rf"{maimaiImgPath}/rating.png").resize((48,9))
     underImg.paste(raImg,(150,0),raImg)
     underTextDraw.text((165, 7), f"{data['ds']}",font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 10), fill=(0, 0, 0))
-    underTextDraw.text((200, 0), f">{computeRa(data['ds'],data['achievements'])}", font=ImageFont.truetype(rf'{materialPath}/msyhbd.ttc', 16),fill=(0, 0, 0))
+    underTextDraw.text((200, 0), f">{computeRa(data['ds'],data['achievements'])}", font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 16),fill=(0, 0, 0))
     dxScoreImg = Image.open(rf"{maimaiImgPath}/deluxscore.png").resize((72,17))
     underImg.paste(dxScoreImg,(270,2),dxScoreImg)
     underTextDraw.text((337, 0), f"{data['dxScore']}",font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 16), fill=(29, 164, 0))
