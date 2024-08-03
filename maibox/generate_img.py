@@ -463,7 +463,6 @@ def call_b50(fish_username, filename, nickname=None, icon_id=None, wechat_utils:
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
     B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
-    B50Img = B50Img.resize((int(B50Img.width / 5) * 4, int(B50Img.height / 5) * 4))
     B50Img.save(f"./img/{filename}", format="png", quality=90)
 
     if wechat_utils and wechat_utils.interface_test():
