@@ -64,7 +64,13 @@ urls:
 wechat:  # 微信公众号配置
   app_id: app_id  # 公众号appid
   app_secret: app_secret  # 公众号appsecret
-  limited_mode: true  # 是否开启受限模式（始终与用户保持文本交互，禁用该功能前请确保公众号可以正常使用临时素材和客服消息）
-  token: token  # 公众号token
+  # 公众号交互接口 interact_interface
+  # 可选：official、unofficial、limited，分别代表官方接口、非官方接口、受限模式
+  # 官方接口：使用官方接口与用户交互（测试号建议使用该接口，官方接口文档：https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/Overview.html，若不可用将自动降级到受限模式）
+  # 非官方接口：使用公众号管理员后台非官方接口与用户交互（无法保证100%可用，若不可用将自动降级到受限模式）
+  # 受限模式：默认，将始终与用户保持文字交互（若以上所有接口均不可用，将自动降级到该模式）
+  interact_interface: "limited"
+  unofficial_cookies_json: ""  # 公众号管理员后台cookies（使用非官方接口需要）
+  token: token  # 公众号token（可随机生成）
   wxid_admins:  # 管理员列表（微信openid哈希）
     - admin1

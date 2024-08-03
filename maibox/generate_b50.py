@@ -10,7 +10,7 @@ import requests
 from typing import Optional, Dict, List
 from PIL import Image, ImageDraw, ImageFont
 
-from maibox.wechat import WechatUtils
+from maibox.wechat import WechatInterface
 
 logger = logging.getLogger(__name__)
 
@@ -430,38 +430,16 @@ def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Im
     return drawBaseImg(sd, dx, B35Rating, B15Rating, int(obj['additional_rating']), obj["user_general_data"], obj["nickname"], plate, icon, filename)
 
 
-def call(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatUtils = None, non_hashed_wxid: str=""):
+def call(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
     B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
     B50Img = B50Img.resize((int(B50Img.width / 5) * 4, int(B50Img.height / 5) * 4))
     B50Img.save(f"./img/{filename}", format="jpeg", quality=90)
 
-    if wechat_utils and (not wechat_utils.limited_mode):
-        wechat_utils.reply_msg({
-            "touser": non_hashed_wxid,
-            "msgtype": "image",
-            "image": {
-                "media_id": str(wechat_utils.send_temp_img(f"./img/{filename}"))
-            }
-        })
+    if wechat_utils and wechat_utils.interface_test():
+        wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)
         os.remove(f"./img/{filename}")
 
     os.remove(f"./img/{filename}.flag")
 
-def call_with_media_id(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatUtils = None, non_hashed_wxid: str=""):
-    B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
-    B50Img = B50Img.resize((int(B50Img.width / 5) * 4, int(B50Img.height / 5) * 4))
-    B50Img.save(f"./img/{filename}", format="jpeg", quality=90)
-
-    media_id = wechat_utils.send_permanent_img(f"./img/{filename}")
-
-    def auto_remove(media_id: str, filename: str):
-        time.sleep(180)
-        os.remove(f"./img/{filename}")
-        wechat_utils.remove_permanent_img(media_id)
-        logger.info(f"{filename} removed")
-
-    threading.Thread(target=auto_remove, args=(media_id, filename)).start()
-
-    return media_id

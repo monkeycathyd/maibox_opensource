@@ -20,9 +20,9 @@ from maibox import config
 from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
 from maibox import fish_sync
-from maibox.generate_b50 import call as b50call, call_with_media_id
+from maibox.generate_b50 import call as b50call
 from maibox.utils import getLogger, get_version_label
-from maibox.wechat import WechatUtils
+from maibox.wechat import get_utils
 
 logger = getLogger(__name__)
 
@@ -32,8 +32,8 @@ agreement = cfg["agreement"]["text"].format(place="公众号", negopt="取消关
 class TextChatHandler:
     def __init__(self, dao):
         self.dao = dao
-        self._limited_mode = cfg["wechat"].get("limited_mode", True)
-        self._wechat_utils = WechatUtils()
+        self._wechat_utils = get_utils()
+        self._limited_mode = self._wechat_utils.interface_test()
         self.command_map = {
             '同步': self.handle_sync, #
             '看我': self.handle_preview, #
@@ -166,16 +166,12 @@ class TextChatHandler:
             logger.info(f"Hashed User OpenID: {hashed_wxid}")
             logger.info(f"User: {wxid}\nSend: {content}\nResponse: {return_msg}")
 
+        self._limited_mode = not self._wechat_utils.interface_test()
+
         if self._limited_mode:
             return return_msg
         else:
-            self._wechat_utils.reply_msg({
-                "touser": wxid,
-                "msgtype": "text",
-                "text":{
-                    "content": return_msg
-                }
-            })
+            self._wechat_utils.send_text(return_msg, wxid)
             return ""
 
 
