@@ -278,7 +278,6 @@ class WechatUnofficialUtils(WechatInterface):
 
     def upload_file(self, filepath):
         self._init_ticket()
-
         url = 'https://mp.weixin.qq.com/cgi-bin/filetransfer?action=upload_material&f=json&ticket_id={ticket_id}&ticket={ticket}&token={token}&lang=zh_CN'.format(
             ticket_id=self.ticket_id,
             ticket=self.ticket,
@@ -368,7 +367,7 @@ class WechatUnofficialUtils(WechatInterface):
         self.remove_file(file_id)
         return result
 
-def get_utils() -> WechatInterface | None:
+def get_utils() -> WechatInterface:
     use_interface = cfg["wechat"].get("interact_interface", "")
     interface = WechatInterface()
     if use_interface == "official":
