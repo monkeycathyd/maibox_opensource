@@ -336,7 +336,7 @@ class TextChatHandler:
             length=data["data"]["length"]
         )
         for i in range(len(data["data"]["userChargeList"])):
-            message += "{order}. 倍券ID：{chargeId}\n当前持有{stock}张，最近一次购买于{purchaseDate}，有效期至{validDate}".format(
+            message += "{order}. 倍券ID：{chargeId}\n当前持有{stock}张，最近一次购买于{purchaseDate}，有效期至{validDate}\n".format(
                 order=i + 1,
                 chargeId=data["data"]["userChargeList"][i]["chargeId"],
                 stock=data["data"]["userChargeList"][i]["stock"],
