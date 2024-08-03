@@ -256,7 +256,6 @@ class WechatUnofficialUtils(WechatInterface):
             return False
 
     def send_text(self, text: str, wxid: str):
-        print("send msg:", text, wxid)
         if self.token == "":
             return False
         url = "https://mp.weixin.qq.com/cgi-bin/singlesend?t=ajax-response&f=json"
