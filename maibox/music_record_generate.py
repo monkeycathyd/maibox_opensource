@@ -1,19 +1,18 @@
-import json
 import os
 from datetime import datetime
 
-from jinja2 import FileSystemLoader, Environment, ModuleLoader
+from jinja2 import FileSystemLoader, Environment
 
 from maibox import config
 from maibox.HTTPRequest import HTTPRequest
+from maibox.game_data_manager import GameDataManager
+
+data_manager = GameDataManager("music")
 
 cfg = config.get_config()
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "templates"))
-music_info_path = os.path.join(os.path.dirname(__file__), "game_data", "music_list.json")
 
-with open(music_info_path, "r", encoding="utf-8") as f:
-    music_list = json.load(f)
 
 comboStatus_list = ["back", "fc", "fcp", "ap", "app"]
 syncStatus_list = ["back", "fs", "fsp", "fdx", "fdxp", "sync"]
@@ -56,7 +55,7 @@ def get_rating(achievement_rate):
         return "D"
 
 def get_level(music_id, level):
-    level = music_list[str(music_id)]["chart_difficulty"][int(level)]
+    level = data_manager.get_resource(music_id)["chart_difficulty"][int(level)]
     if round(level) != level:
         return str(int(level)) + "+"
     return str(int(level))
@@ -76,7 +75,7 @@ def get_user_music_details(uid: int):
     for music in userMusicDetailList:
         try:
             final_list.append({
-                "title": music_list[str(music["musicId"])]["title"],
+                "title": data_manager.get_resource(int(music["musicId"]))["title"],
                 "achievement": standard_achievement(int(music["achievement"])),
                 "comboStatus": comboStatus_list[music["comboStatus"]],
                 "syncStatus": syncStatus_list[music["syncStatus"]],

@@ -11,8 +11,16 @@ from maibox import chime
 from maibox.HTTPRequest import HTTPRequest
 from maibox.config import get_config
 from maibox.constants import ticket_define, region_map
+from maibox.utils import find_chara_levels, find_chara_awakening
+from maibox.game_data_manager import GameDataManager
 
 config = get_config()
+chara_manager = GameDataManager("chara")
+title_manager = GameDataManager("title")
+frame_manager = GameDataManager("frame")
+plate_manager = GameDataManager("plate")
+partner_manager = GameDataManager("partner")
+icon_manager = GameDataManager("icon")
 
 def get_preview(uid, dao):
     result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
@@ -38,6 +46,53 @@ def get_preview(uid, dao):
     result["is_error"] = False
     result["msg"] = "成功"
     return result
+
+def get_preview_detailed(uid):
+    result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
+    login_dict = {
+        "userId": uid,
+        "accessCode": "",
+        "regionId": config["arcade_info"]["region_id"],
+        "placeId": config["arcade_info"]["place_id"],
+        "clientId": config["arcade_info"]["key_chip"],
+        "dateTime": int(time.time()),
+        "isContinue": False,
+        "genericFlag": 0,
+        "nextIndex":0,
+        "maxCount":20
+    }
+    request = HTTPRequest(uid=uid)
+    preview = request.Request("GetUserPreviewApiMaimaiChn", login_dict)
+    if not preview["isLogin"]:
+        login = request.Request("UserLoginApiMaimaiChn", login_dict)
+        if login["returnCode"] != 1:
+            result["is_got_qr_code"] = False
+            result["msg"] = "请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮后再试一遍"
+            return result
+    else:
+        result["is_already_login"] = True
+    user_data = request.Request("GetUserDataApiMaimaiChn", login_dict)
+    character_list = request.Request("GetUserCharacterApiMaimaiChn", login_dict)["userCharacterList"]
+
+    player_info = user_data["userData"]
+    player_info["charaLevel"] = find_chara_levels(character_list, user_data["userData"]["charaSlot"])
+    player_info["charaAwakening"] = find_chara_awakening(character_list, user_data["userData"]["charaSlot"])
+    player_info["charaName"] = [chara_manager.get_resource(title_id) for title_id in user_data["userData"]["charaSlot"]]
+    player_info["frameName"] = frame_manager.get_resource(user_data["userData"]["frameId"])
+    player_info["plateName"] = plate_manager.get_resource(user_data["userData"]["plateId"])
+    player_info["iconName"] = icon_manager.get_resource(user_data["userData"]["iconId"])
+    player_info["partnerName"] = partner_manager.get_resource(user_data["userData"]["partnerId"])
+    player_info["titleName"] = title_manager.get_resource(user_data["userData"]["titleId"])
+    player_info["banState"] = user_data["banState"]
+
+    result["data"] = player_info
+
+    if not preview["isLogin"]:
+        request.Request("UserLogoutApiMaimaiChn", login_dict)
+
+    print(result)
+    return result
+
 
 
 def send_ticket(uid, ticket_id):

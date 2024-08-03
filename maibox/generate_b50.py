@@ -2,6 +2,8 @@ import logging
 import os
 import math
 import random
+import threading
+import time
 from datetime import datetime
 
 import requests
@@ -446,3 +448,20 @@ def call(fish_username, filename, nickname=None, icon_id=None, wechat_utils: Wec
         os.remove(f"./img/{filename}")
 
     os.remove(f"./img/{filename}.flag")
+
+def call_with_media_id(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatUtils = None, non_hashed_wxid: str=""):
+    B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
+    B50Img = B50Img.resize((int(B50Img.width / 5) * 4, int(B50Img.height / 5) * 4))
+    B50Img.save(f"./img/{filename}", format="jpeg", quality=90)
+
+    media_id = wechat_utils.send_permanent_img(f"./img/{filename}")
+
+    def auto_remove(media_id: str, filename: str):
+        time.sleep(180)
+        os.remove(f"./img/{filename}")
+        wechat_utils.remove_permanent_img(media_id)
+        logger.info(f"{filename} removed")
+
+    threading.Thread(target=auto_remove, args=(media_id, filename)).start()
+
+    return media_id

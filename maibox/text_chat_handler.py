@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import logging
 import random
@@ -19,7 +20,7 @@ from maibox import config
 from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
 from maibox import fish_sync
-from maibox.generate_b50 import call as b50call
+from maibox.generate_b50 import call as b50call, call_with_media_id
 from maibox.utils import getLogger, get_version_label
 from maibox.wechat import WechatUtils
 
@@ -84,13 +85,24 @@ class TextChatHandler:
             msg = self.process_img(data["PicUrl"], data["FromUserName"])
         elif data["MsgType"] == "text":
             msg = self.process_chat(data["Content"], data["FromUserName"], version, region)
-        return {
+
+        return_msg = {
             "FromUserName": data["ToUserName"],
             "ToUserName": data["FromUserName"],
             "CreateTime": int(time.time()),
-            "MsgType": "text",
-            "Content": msg
+            "MsgType": "",
+            "Content": ""
         }
+        if isinstance(msg, str):
+            return_msg["MsgType"] = "text"
+            return_msg["Content"] = msg
+        elif isinstance(msg, dict):
+            return_msg = msg
+            return_msg["FromUserName"] = data["ToUserName"]
+            return_msg["ToUserName"] = data["FromUserName"]
+            return_msg["CreateTime"] = int(time.time())
+
+        return return_msg
 
     def process_img(self, url, wxid):
         return_msg = ""
@@ -253,7 +265,7 @@ class TextChatHandler:
         return return_msg
 
     def handle_preview(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
-        my_preview = self.preview(wxid)
+        my_preview = self.detailed_preview(wxid)
         return_msg = ""
         if not my_preview:
             return_msg = "未绑定，发送 “绑定 [你的UserID]” 绑定"
@@ -264,7 +276,7 @@ class TextChatHandler:
             last_rom_ver_tuple = tuple(map(int, my_preview["data"]["lastRomVersion"].split(".")))
             last_data_ver_tuple = tuple(map(int, my_preview["data"]["lastDataVersion"].split(".")))
 
-            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：CN{rom_version}{data_char}\n封禁状态: {ban_state}\n你当前{login_status}\n{whitelist_status}".format(
+            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：CN{rom_version}{data_char}\n封禁状态: {ban_state}\n\n请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息".format(
                 warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[1] % 5 != 0) or (last_rom_ver_tuple[0] != 1 and last_rom_ver_tuple[2] != 0) else "",
                 wxid=wxid,
                 user_id=my_preview["data"]["userId"],
@@ -273,8 +285,8 @@ class TextChatHandler:
                 rom_version=".".join(my_preview["data"]["lastRomVersion"].split(".")[0:2]),
                 data_char="-{char}".format(char=last_game_data_character),
                 ban_state=["正常", "警告", "封禁"][my_preview["data"]["banState"]],
-                login_status="正在上机" if my_preview["data"]["isLogin"] else "未上机",
-                whitelist_status="你当前是受邀用户\n" if my_preview["is_in_whitelist"] else ""
+                # login_status="正在上机" if my_preview["data"]["isLogin"] else "未上机",
+                # whitelist_status="你当前是受邀用户\n" if my_preview["is_in_whitelist"] else ""
             ).strip()
 
         return return_msg
@@ -478,6 +490,77 @@ class TextChatHandler:
         else:
             return None
 
+    def detailed_preview(self,wxid):
+        uid = self.dao.getUid(wxid)
+        template = """{warning}
+微信用户ID（已哈希化）: {wxid}
+用户ID: {user_id}
+昵称: {user_name}
+游戏Rating: {player_rating}
+上次游戏版本：Ver.CN{rom_version}{data_char}
+封禁状态: {ban_state}
+头像：{icon_name}
+姓名框：{plate_name}
+称号：{title_name}
+背景：{frame_name}
+搭档：{partner_name}
+旅行伙伴: {charater_str}
+旅行伙伴等级: {charater_level_str}
+旅行伙伴觉醒: {charater_awakening_str}
+最后一次登录时间：{last_login_date}
+入坑天数：{play_day_count}天（{first_play_date}）
+入坑版本：Ver.CN{first_rom_version}{first_data_char}
+累计游玩次数：{play_count}
+当前版本游玩次数：{current_play_count}"""
+        if uid:
+            try:
+                data = helpers.get_preview_detailed(uid)
+                if data["msg"]:
+                    if not data["is_got_qr_code"]:
+                        return self.preview(wxid)
+                    return data["msg"]
+                last_game_data_character = get_version_label(int(data["data"]["lastDataVersion"].split(".")[-1]))
+                last_rom_ver_tuple = tuple(map(int, data["data"]["lastRomVersion"].split(".")))
+                last_data_ver_tuple = tuple(map(int, data["data"]["lastDataVersion"].split(".")))
+
+                first_game_data_character = get_version_label(int(data["data"]["firstDataVersion"].split(".")[-1]))
+                first_rom_ver_tuple = tuple(map(int, data["data"]["firstRomVersion"].split(".")))
+                first_data_ver_tuple = tuple(map(int, data["data"]["firstDataVersion"].split(".")))
+
+                return template.format(
+                    warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[
+                        1] % 5 != 0) or (last_rom_ver_tuple[0] != 1 and last_rom_ver_tuple[2] != 0) else "",
+                    wxid=wxid,
+                    user_id=data["user_id"],
+                    user_name=data["data"]["userName"],
+                    player_rating=data["data"]["playerRating"],
+                    rom_version=".".join(data["data"]["lastRomVersion"].split(".")[0:2]),
+                    data_char="-{char}".format(char=last_game_data_character),
+                    ban_state=["正常", "警告", "封禁"][data["data"]["banState"]],
+                    icon_name=data["data"]["iconName"],
+                    plate_name=data["data"]["plateName"],
+                    title_name=data["data"]["titleName"],
+                    frame_name=data["data"]["frameName"],
+                    partner_name=data["data"]["partnerName"],
+                    charater_str=" ".join(data["data"]["charaName"]),
+                    charater_level_str=" ".join(map(str, data["data"]["charaLevel"])),
+                    charater_awakening_str=" ".join(map(str, data["data"]["charaAwakening"])),
+                    last_login_date=data["data"]["lastLoginDate"],
+                    play_day_count=(datetime.datetime.now() - datetime.datetime.strptime(data["data"]["firstPlayDate"], "%Y-%m-%d %H:%M:%S")).days,
+                    first_play_date=data["data"]["firstPlayDate"],
+                    first_rom_version=".".join(data["data"]["firstRomVersion"].split(".")[0:2]),
+                    first_data_char="-{char}".format(char=first_game_data_character),
+                    play_count=data["data"]["playCount"],
+                    current_play_count=data["data"]["currentPlayCount"]
+                ).strip()
+
+            except Exception as e:
+                logger.error(f"Error {uuid.uuid1()}: {e}")
+                logger.error(f"{traceback.format_exc()}")
+                return "访问失败，可能是服务器错误"
+        else:
+            return None
+
     def region(self,wxid):
         uid = self.dao.getUid(wxid)
         if uid:
@@ -524,6 +607,7 @@ class TextChatHandler:
         file_id = hashlib.md5(
             f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
         filename = f"b50_{file_id}.jpg"
+
         threading.Thread(target=b50call, args=(username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
         if self._limited_mode:
             return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
