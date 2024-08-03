@@ -25,6 +25,8 @@ from maibox.utils import getLogger, check_wx_auth
 server_url = "https://maimai-gm.wahlap.com:42081/Maimai2Servlet/"
 server = urllib3.util.parse_url(server_url)
 
+safe_img_type = ["b50", "user"]
+
 # 初始化日志记录器和Flask应用实例
 logger = getLogger(__name__)
 app = Flask(__name__)
@@ -79,19 +81,19 @@ def error_handler(e):
 def index():
     return redirect(server_config["urls"]["main_url"])
 
-@app.route('/img/b50', methods=['GET'], endpoint='img_b50')
-def img_b50():
+@app.route('/img/<img_type>', methods=['GET'], endpoint='img')
+def img(img_type):
     file_id = request.args.get('id', "")
-    if not re.match(r'^[0-9a-z]+$', file_id):
-        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件ID错误</h1>""", 404
-    filename = f"b50_{file_id}.jpg"
+    if (not re.match(r'^[0-9a-z]+$', file_id)) or (img_type not in safe_img_type):
+        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片ID或图片类型错误</h1>""", 404
+    filename = f"{img_type}_{file_id}.png"
     filepath = os.path.join(os.getcwd(), "img", filename)
     if os.path.exists(filepath):
         return send_file(filepath)
     elif os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.flag")):
         return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片正在生成，请稍后</h1><script>setTimeout(()=>{location.reload()}, 1500)</script>""", 404
     else:
-        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>文件id错误</h1>""", 404
+        return """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>图片ID或图片类型错误</h1>""", 404
 
 @app.route('/Maimai2Servlet/<api>', methods=['POST'], endpoint='proxy')
 @server_maintenance_check

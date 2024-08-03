@@ -90,7 +90,6 @@ def get_preview_detailed(uid):
     if not preview["isLogin"]:
         request.Request("UserLogoutApiMaimaiChn", login_dict)
 
-    print(result)
     return result
 
 

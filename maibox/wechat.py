@@ -381,7 +381,7 @@ def get_utils() -> WechatInterface:
             interface = WechatInterface()
     elif use_interface == "limited":
         interface = WechatInterface()
-    if interface.interface_test():
+    if interface and interface.interface_test():
         return interface
     else:
         return WechatInterface()

@@ -6,9 +6,12 @@ import threading
 import time
 from datetime import datetime
 
+
+import colorsys
 import requests
 from typing import Optional, Dict, List
 from PIL import Image, ImageDraw, ImageFont
+from PIL.ImageFile import ImageFile
 
 from maibox.wechat import WechatInterface
 
@@ -36,7 +39,10 @@ def generateBaseImg_festival():
 def drawBaseImg(sd,dx,B35Rating,B15Rating,rankRating,userData,userName,plate,icon, filename):
     BaseImg = generateBaseImg_festival()
 
-    UserImg = drawUserImg(userData,B35Rating,B15Rating,rankRating,userName,icon,plate)
+    totalRating = int(B35Rating)+int(B15Rating)
+    title = f"B35：{B35Rating} + B15：{B15Rating}"
+
+    UserImg = drawUserImg(userData,title,totalRating,rankRating,userName,icon,plate)
     BaseImg.paste(UserImg, (0, 30), UserImg)
 
     dxLogo = Image.open(rf"{maimaiImgPath}/logo2024.png")
@@ -80,7 +86,7 @@ def drawBaseImg(sd,dx,B35Rating,B15Rating,rankRating,userData,userName,plate,ico
 
 
 
-def drawUserImg(data,B35Rating,B15Rating,rankRating,userName,icon,plate):
+def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate):
     numToNum = {    '0': "UI_NUM_Drating_0.png",
                     '1': "UI_NUM_Drating_1.png",
                     '2': "UI_NUM_Drating_2.png",
@@ -102,7 +108,6 @@ def drawUserImg(data,B35Rating,B15Rating,rankRating,userName,icon,plate):
     iconImg = iconImg.resize((100,100))
     UserImg.paste(iconImg,(835,15),iconImg)
 
-    totalRating = int(B35Rating)+int(B15Rating)
 
     if 0 <= totalRating <= 999:
         ratingPlate = "UI_CMN_DXRating_01.png"
@@ -157,7 +162,7 @@ def drawUserImg(data,B35Rating,B15Rating,rankRating,userName,icon,plate):
 
     totalRatingImg = Image.open(rf"{maimaiImgPath}/shougou/UI_CMN_Shougou_Rainbow.png")#421*92  227*50
     totalRatingDraw = ImageDraw.Draw(totalRatingImg)
-    totalRatingDraw.text((20, 5), f"B35：{B35Rating} + B15：{B15Rating}", font=ImageFont.truetype(rf'{materialPath}/msyhbd.ttc', 11),fill=(0, 0, 0))
+    totalRatingDraw.text((20, 5), title, font=ImageFont.truetype(rf'{materialPath}/msyhbd.ttc', 11),fill=(0, 0, 0))
     UserImg.paste(totalRatingImg, (940, 92), totalRatingImg)
 
     return UserImg
@@ -370,7 +375,7 @@ def getRandomIcon():
     return rf"{maimaiImgPath}/icon/{iconList[random.randint(0, len(iconList) - 1)]}"
 
 
-def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Image.Image:
+def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> ImageFile | None:
     resp = requests.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload)
     if resp.status_code == 400:
         return None
@@ -430,12 +435,71 @@ def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Im
     return drawBaseImg(sd, dx, B35Rating, B15Rating, int(obj['additional_rating']), obj["user_general_data"], obj["nickname"], plate, icon, filename)
 
 
-def call(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
+def get_dominant_color(image):
+    # 颜色模式转换，以便输出rgb颜色值
+    image = image.convert('RGBA')
+    # 生成缩略图，减少计算量，减小cpu压力
+    image.thumbnail((200, 200))
+    max_score = 0
+    dominant_color = (0,0,0)
+    for count, (r, g, b, a) in image.getcolors(image.size[0] * image.size[1]):
+        # 跳过纯黑色
+        if a == 0:
+            continue
+        saturation = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)[1]
+        y = min(abs(r * 2104 + g * 4130 + b * 802 + 4096 + 131072) >> 13, 235)
+        y = (y - 16.0) / (235 - 16)
+        # 忽略高亮色
+        if y > 0.9:
+            continue
+        score = (saturation + 0.1) * count
+        if score > max_score:
+            max_score = score
+            dominant_color = (r, g, b)
+    return dominant_color
+
+
+def call_b50(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
     B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
     B50Img = B50Img.resize((int(B50Img.width / 5) * 4, int(B50Img.height / 5) * 4))
-    B50Img.save(f"./img/{filename}", format="jpeg", quality=90)
+    B50Img.save(f"./img/{filename}", format="png", quality=90)
+
+    if wechat_utils and wechat_utils.interface_test():
+        wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)
+        os.remove(f"./img/{filename}")
+
+    os.remove(f"./img/{filename}.flag")
+
+def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
+    with open(f"img/{filename}.flag", "wb") as f:
+        f.write(b"")
+
+    try:
+        frame_path = rf"{maimaiImgPath}/frame/UI_Frame_{str(user_data["frame"]).zfill(6)}.png"
+        frame_img = Image.open(frame_path).resize((1080, 452))
+    except:
+        frame_path = rf"{maimaiImgPath}/frame/UI_Frame_000000.png"
+        frame_img = Image.open(frame_path).resize((1080, 452))
+
+    theme_color = get_dominant_color(frame_img)
+    img = Image.new("RGBA", (1080, 477), theme_color)
+    text_color = tuple(abs(c-100)%255 for c in theme_color)
+
+    img.paste(frame_img, (0, 0))
+
+    plate = rf"{maimaiImgPath}/plate/normal/UI_Plate_{str(user_data['plate']).zfill(6)}.png"
+    icon = rf"{maimaiImgPath}/icon/UI_Icon_{str(user_data['icon']).zfill(6)}.png"
+    UserImg:Image = drawUserImg(user_data, user_data["title"], user_data["rating"], user_data['classRank'], user_data['nickname'], icon, plate).crop((830,8,1550,124))
+    img.paste(UserImg, (15, 15), UserImg)
+
+    designDraw = ImageDraw.Draw(img)
+    designDraw.text((20, 457),
+                    f"{filename} - Generated by maibox-wx at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} - 图片仅供参考",
+                    font=ImageFont.truetype(rf'{materialPath}/msyhbd.ttc', 12), fill=text_color)
+
+    img.save(f"./img/{filename}", format="png", quality=90)
 
     if wechat_utils and wechat_utils.interface_test():
         wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)

@@ -20,7 +20,7 @@ from maibox import config
 from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
 from maibox import fish_sync
-from maibox.generate_b50 import call as b50call
+from maibox.generate_img import call_b50, call_user_img
 from maibox.utils import getLogger, get_version_label
 from maibox.wechat import get_utils
 
@@ -261,7 +261,7 @@ class TextChatHandler:
         return return_msg
 
     def handle_preview(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
-        my_preview = self.detailed_preview(wxid)
+        my_preview = self.detailed_preview(wxid, non_hashed_wxid)
         return_msg = ""
         if not my_preview:
             return_msg = "未绑定，发送 “绑定 [你的UserID]” 绑定"
@@ -486,7 +486,7 @@ class TextChatHandler:
         else:
             return None
 
-    def detailed_preview(self,wxid):
+    def detailed_preview(self,wxid,openid=""):
         uid = self.dao.getUid(wxid)
         template = """{warning}
 微信用户ID（已哈希化）: {wxid}
@@ -523,7 +523,7 @@ class TextChatHandler:
                 first_rom_ver_tuple = tuple(map(int, data["data"]["firstRomVersion"].split(".")))
                 first_data_ver_tuple = tuple(map(int, data["data"]["firstDataVersion"].split(".")))
 
-                return template.format(
+                text = template.format(
                     warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[
                         1] % 5 != 0) or (last_rom_ver_tuple[0] != 1 and last_rom_ver_tuple[2] != 0) else "",
                     wxid=wxid,
@@ -549,6 +549,30 @@ class TextChatHandler:
                     play_count=data["data"]["playCount"],
                     current_play_count=data["data"]["currentPlayCount"]
                 ).strip()
+
+                file_id = hashlib.md5(
+                    f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
+                filename = f"user_{file_id}.png"
+
+                user_data = {
+                    "nickname": data["data"]["userName"],
+                    "title": data["data"]["titleName"],
+                    "icon": data["data"]["iconId"],
+                    "frame": data["data"]["frameId"],
+                    "plate": data["data"]["plateId"],
+                    "rating": data["data"]["playerRating"],
+                    "classRank": data["data"]["classRank"]
+                }
+                threading.Thread(target=call_user_img, args=(filename, user_data, self._wechat_utils, openid)).start()
+
+                self._limited_mode = not self._wechat_utils.interface_test()
+                if self._limited_mode:
+                    text += "\n用户预览图片获取地址：\n{api_url}/img/user?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(
+                        api_url=cfg["urls"]["api_url"], file_id=file_id)
+                else:
+                    text += "\n稍后发送用户预览图片"
+
+                return text
 
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
@@ -602,9 +626,12 @@ class TextChatHandler:
             return return_msg
         file_id = hashlib.md5(
             f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
-        filename = f"b50_{file_id}.jpg"
+        filename = f"b50_{file_id}.png"
 
-        threading.Thread(target=b50call, args=(username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
+        threading.Thread(target=call_b50, args=(username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
+        self._limited_mode = not self._wechat_utils.interface_test()
         if self._limited_mode:
             return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
+        else:
+            return_msg += "稍后发送b50图片"
         return return_msg.strip()
