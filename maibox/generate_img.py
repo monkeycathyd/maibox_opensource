@@ -86,7 +86,7 @@ def drawBaseImg(sd,dx,B35Rating,B15Rating,rankRating,userData,userName,plate,ico
 
 
 
-def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate):
+def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare="Normal"):
     numToNum = {    '0': "UI_NUM_Drating_0.png",
                     '1': "UI_NUM_Drating_1.png",
                     '2': "UI_NUM_Drating_2.png",
@@ -160,9 +160,9 @@ def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate):
     UserIdDraw.text((7, 6), f"{userName}", font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 25),fill=(0, 0, 0))
     UserImg.paste(UserIdImg, (940, 50), UserIdImg)
 
-    totalRatingImg = Image.open(rf"{maimaiImgPath}/shougou/UI_CMN_Shougou_Rainbow.png")#421*92  227*50
+    totalRatingImg = Image.open(rf"{maimaiImgPath}/shougou/UI_CMN_Shougou_{title_rare.title()}.png")#421*92  227*50
     totalRatingDraw = ImageDraw.Draw(totalRatingImg)
-    totalRatingDraw.text((10, 5), title, font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 11),fill=(0, 0, 0))
+    totalRatingDraw.text((10, 7), title, font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 11),fill=(0, 0, 0))
     UserImg.paste(totalRatingImg, (940, 92), totalRatingImg)
 
     return UserImg
@@ -490,7 +490,7 @@ def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non
 
     plate = rf"{maimaiImgPath}/plate/normal/UI_Plate_{str(user_data['plate']).zfill(6)}.png"
     icon = rf"{maimaiImgPath}/icon/UI_Icon_{str(user_data['icon']).zfill(6)}.png"
-    UserImg:Image = drawUserImg(user_data, user_data["title"], user_data["rating"], user_data['classRank'], user_data['nickname'], icon, plate).crop((830,8,1550,124))
+    UserImg:Image = drawUserImg(user_data, user_data["title"], user_data["rating"], user_data['classRank'], user_data['nickname'], icon, plate,user_data["titleRare"]).crop((830,8,1550,124))
     img.paste(UserImg, (15, 15), UserImg)
 
     designDraw = ImageDraw.Draw(img)

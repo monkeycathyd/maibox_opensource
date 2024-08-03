@@ -82,7 +82,8 @@ def get_preview_detailed(uid):
     player_info["plateName"] = plate_manager.get_resource(user_data["userData"]["plateId"])
     player_info["iconName"] = icon_manager.get_resource(user_data["userData"]["iconId"])
     player_info["partnerName"] = partner_manager.get_resource(user_data["userData"]["partnerId"])
-    player_info["titleName"] = title_manager.get_resource(user_data["userData"]["titleId"])
+    player_info["titleName"] = title_manager.get_resource(user_data["userData"]["titleId"])["title"]
+    player_info["titleRare"] = title_manager.get_resource(user_data["userData"]["titleId"])["rareType"]
     player_info["banState"] = user_data["banState"]
 
     result["data"] = player_info

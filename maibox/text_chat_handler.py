@@ -561,7 +561,8 @@ class TextChatHandler:
                     "frame": data["data"]["frameId"],
                     "plate": data["data"]["plateId"],
                     "rating": data["data"]["playerRating"],
-                    "classRank": data["data"]["classRank"]
+                    "classRank": data["data"]["classRank"],
+                    "titleRare": data["data"]["titleRare"]
                 }
                 threading.Thread(target=call_user_img, args=(filename, user_data, self._wechat_utils, openid)).start()
 
