@@ -2,14 +2,12 @@ import logging
 import os
 import math
 import random
-import threading
-import time
 from datetime import datetime
 
 
 import colorsys
 import requests
-from typing import Optional, Dict, List
+from typing import Dict, List
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFile import ImageFile
 
@@ -25,7 +23,7 @@ materialPath = r'static/material'
 
 def get_cover_len5_id(mid) -> str:
     mid = int(mid)
-    if mid > 10000 and mid <= 11000:
+    if 10000 < mid <= 11000:
         mid -= 10000
     return f'{mid:05d}'
 
