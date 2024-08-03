@@ -124,10 +124,12 @@ class WechatUnofficialUtils(WechatInterface):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.80 Safari/537.36',
             'Referer': 'https://mp.weixin.qq.com/'
         }
-        self.QRImgPath = os.path.split(os.path.realpath(__file__))[0] + os.sep + 'webWeixinQr.jpg'
+        self.QRImgPath = './webWeixinQr.jpg'
         self.token = ""
         self.ticket = ""
         self.fakeid = ""
+        self.username = ""
+        self.password = ""
 
     @staticmethod
     def login():
