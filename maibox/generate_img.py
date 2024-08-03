@@ -21,7 +21,7 @@ scoreRank = ['D', 'C', 'B', 'BB', 'BBB', 'A', 'AA', 'AAA', 'S', 'S+', 'SS', 'SS+
 combo = ['', 'FC', 'FC+', 'AP', 'AP+']
 diffs = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master']
 maimaiImgPath = r'static/images/maimai'
-materialPath = r'static/Material'
+materialPath = r'static/material'
 
 def get_cover_len5_id(mid) -> str:
     mid = int(mid)
