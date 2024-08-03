@@ -567,10 +567,10 @@ class TextChatHandler:
 
                 self._limited_mode = not self._wechat_utils.interface_test()
                 if self._limited_mode:
-                    text += "\n用户预览图片获取地址：\n{api_url}/img/user?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(
+                    text += "\n\n用户预览图片获取地址：\n{api_url}/img/user?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(
                         api_url=cfg["urls"]["api_url"], file_id=file_id)
                 else:
-                    text += "\n稍后发送用户预览图片"
+                    text += "\n\n稍后发送用户预览图片"
 
                 return text
 
@@ -631,7 +631,7 @@ class TextChatHandler:
         threading.Thread(target=call_b50, args=(username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
         self._limited_mode = not self._wechat_utils.interface_test()
         if self._limited_mode:
-            return_msg += "b50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
+            return_msg += "\nb50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)
         else:
-            return_msg += "稍后发送b50图片"
+            return_msg += "\n稍后发送b50图片"
         return return_msg.strip()
