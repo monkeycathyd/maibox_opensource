@@ -133,21 +133,24 @@ def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare
     ratingPlateImg = Image.open(rf"{maimaiImgPath}/Rating/{ratingPlate}").resize((174,36))
     UserImg.paste(ratingPlateImg, (940, 16), ratingPlateImg)
 
-    numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{int(totalRating / 1 % 10)}']}").resize((21,23))
-    UserImg.paste(numImg, (1080, 23), numImg)
+    # 定义偏移量和初始x坐标
+    offset = 15
+    start_x = 1081
+    x_positions = [start_x - i * offset for i in range(len(str(totalRating)))]
 
-    numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{int(totalRating / 10 % 10)}']}").resize((21, 23))
-    UserImg.paste(numImg, (1065, 23), numImg)
+    # 根据totalRating的位数处理图片
+    for i, x_pos in enumerate(x_positions):
+        # 计算当前位上的数字
+        digit = int(totalRating / (10 ** i) % 10)
+        print(digit)
+        # 如果是第五位且为0，则跳过
+        if i == 4 and digit == 0:
+            break
+        # 打开并调整图片大小
+        numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{digit}']}").resize((21, 23))
+        # 粘贴图片
+        UserImg.paste(numImg, (x_pos, 23), numImg)
 
-    numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{int(totalRating / 100 % 10)}']}").resize((21, 23))
-    UserImg.paste(numImg, (1051, 23), numImg)
-
-    numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{int(totalRating / 1000 % 10)}']}").resize((21, 23))
-    UserImg.paste(numImg, (1037, 23), numImg)
-
-    if int(totalRating / 10000 % 10) != 0:
-        numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{int(totalRating / 10000 % 10)}']}").resize((21, 23))
-        UserImg.paste(numImg, (1022, 23), numImg)
 
     rankImg = Image.open(rf"{maimaiImgPath}/Ranks/{int(rankRating)}.png").resize((74, 34))
     UserImg.paste(rankImg, (1114, 15), rankImg)
