@@ -34,6 +34,27 @@ def generateBaseImg_festival():
     BaseImg = Image.open(rf"{maimaiImgPath}/Style-Buddies/bg_B50.png")
     return BaseImg
 
+
+def circle_corner(img, radii=30):
+    # 白色区域透明可见，黑色区域不可见
+    circle = Image.new('L', (radii * 2, radii * 2), 0)
+    draw = ImageDraw.Draw(circle)
+    draw.ellipse((0, 0, radii * 2, radii * 2), fill=255)
+
+    img = img.convert("RGBA")
+    w, h = img.size
+
+    # 画角
+    alpha = Image.new('L', img.size, 255)
+    alpha.paste(circle.crop((0, 0, radii, radii)), (0, 0))  # 左上角
+    alpha.paste(circle.crop((radii, 0, radii * 2, radii)), (w - radii, 0))  # 右上角
+    alpha.paste(circle.crop((radii, radii, radii * 2, radii * 2)), (w - radii, h - radii))  # 右下角
+    alpha.paste(circle.crop((0, radii, radii, radii * 2)), (0, h - radii))  # 左下角
+
+    img.putalpha(alpha)
+
+    return img
+
 def drawBaseImg(sd,dx,B35Rating,B15Rating,rankRating,userData,userName,plate,icon, filename):
     BaseImg = generateBaseImg_festival()
 
@@ -82,9 +103,7 @@ def drawBaseImg(sd,dx,B35Rating,B15Rating,rankRating,userData,userName,plate,ico
 
     return BaseImg
 
-
-
-def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare="Normal"):
+def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare="Normal",classRank=-1):
     numToNum = {    '0': "UI_NUM_Drating_0.png",
                     '1': "UI_NUM_Drating_1.png",
                     '2': "UI_NUM_Drating_2.png",
@@ -136,30 +155,30 @@ def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare
     # 定义偏移量和初始x坐标
     offset = 15
     start_x = 1081
-    x_positions = [start_x - i * offset for i in range(len(str(totalRating)))]
+    x_positions = [start_x - i * offset for i in range(len(str(totalRating)))][:5]
 
     # 根据totalRating的位数处理图片
     for i, x_pos in enumerate(x_positions):
         # 计算当前位上的数字
         digit = int(totalRating / (10 ** i) % 10)
-        print(digit)
-        # 如果是第五位且为0，则跳过
-        if i == 4 and digit == 0:
-            break
         # 打开并调整图片大小
         numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{digit}']}").resize((21, 23))
         # 粘贴图片
         UserImg.paste(numImg, (x_pos, 23), numImg)
 
+    if 25 >= int(classRank) >= 0:
+        classRankImg = Image.open(rf"{maimaiImgPath}/classRank/UI_CMN_Class_S_{int(classRank):02d}.png").resize((84, 50))
+        UserImg.paste(classRankImg, (1114, 7), classRankImg)
 
-    rankImg = Image.open(rf"{maimaiImgPath}/Ranks/{int(rankRating)}.png").resize((74, 34))
-    UserImg.paste(rankImg, (1114, 15), rankImg)
 
-
-    UserIdImg = Image.new('RGBA', (227, 45), color=(255, 255, 255))
+    UserIdImg = circle_corner(Image.new('RGBA', (260, 40), color=(255, 255, 255)),5)
     UserIdDraw = ImageDraw.Draw(UserIdImg)
-    UserIdDraw.text((7, 6), f"{userName}", font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 25),fill=(0, 0, 0))
+    UserIdDraw.text((7, 12), f"{userName}", font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Medium.ttf', 20),fill=(0, 0, 0))
     UserImg.paste(UserIdImg, (940, 50), UserIdImg)
+
+    if 23 >= int(rankRating) >= 0:
+        rankImg = Image.open(rf"{maimaiImgPath}/Ranks/{int(rankRating)}.png").resize((74, 34))
+        UserImg.paste(rankImg, (1120, 55), rankImg)
 
     totalRatingImg = Image.open(rf"{maimaiImgPath}/shougou/UI_CMN_Shougou_{title_rare.title()}.png")#421*92  227*50
     totalRatingDraw = ImageDraw.Draw(totalRatingImg)
@@ -460,6 +479,45 @@ def get_dominant_color(image):
     return dominant_color
 
 
+def draw_text_with_stroke(draw: ImageDraw, pos, text, font, fill_color, stroke_width=2, stroke_color='white'):
+    # 绘制描边
+    for x_offset in range(-stroke_width+1, stroke_width):
+        for y_offset in range(-stroke_width+1, stroke_width):
+            if x_offset == 0 and y_offset == 0:
+                continue
+            draw.text((pos[0] + x_offset, pos[1] + y_offset), text, font=font, fill=stroke_color)
+
+    # 在正确位置绘制文本
+    draw.text(pos, text, font=font, fill=fill_color)
+
+def draw_text_with_stroke_and_spacing(draw: ImageDraw.ImageDraw, pos, text, font, fill_color, stroke_width=2, stroke_color='white', spacing=5):
+    # 绘制描边
+    for x_offset in range(-stroke_width+1, stroke_width):
+        for y_offset in range(-stroke_width+1, stroke_width):
+            if x_offset == 0 and y_offset == 0:
+                continue
+            xx, yy = (pos[0] + x_offset, pos[1] + y_offset)
+            for char in text:
+                _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)  # 'W' 是一个较宽的字符，用于估算
+                draw.text((xx, yy), char, font=font, fill=stroke_color)
+                xx += char_width + spacing  # 增加间距
+
+    # 逐字符绘制并调整位置
+    x, y = pos
+    for char in text:
+        _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)  # 'W' 是一个较宽的字符，用于估算
+        draw.text((x, y), char, font=font, fill=fill_color)
+        x += char_width + spacing  # 增加间距
+
+def draw_text_with_spacing(draw: ImageDraw.ImageDraw, pos, text, font, fill_color, spacing=5):
+    # 逐字符绘制并调整位置
+    x, y = pos
+    for char in text:
+        _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)  # 'W' 是一个较宽的字符，用于估算
+        draw.text((x, y), char, font=font, fill=fill_color)
+        x += char_width + spacing  # 增加间距
+
+
 def call_b50(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
@@ -491,10 +549,40 @@ def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non
 
     plate = rf"{maimaiImgPath}/plate/normal/UI_Plate_{str(user_data['plate']).zfill(6)}.png"
     icon = rf"{maimaiImgPath}/icon/UI_Icon_{str(user_data['icon']).zfill(6)}.png"
-    UserImg:Image = drawUserImg(user_data, user_data["title"], user_data["rating"], user_data['classRank'], user_data['nickname'], icon, plate,user_data["titleRare"]).crop((830,8,1550,124))
-    img.paste(UserImg, (15, 15), UserImg)
+
+    UserImg: Image = drawUserImg(user_data, user_data["title"], user_data["rating"], user_data['courseRank'], user_data['nickname'], icon, plate,user_data["titleRare"],user_data["classRank"]).crop((830,8,1550,124))
+    img.paste(UserImg, (25, 25), UserImg)
+
+    network_status_img = Image.open(rf"{maimaiImgPath}/network/on.png")
+    img.paste(network_status_img, (1014, 25), network_status_img)
 
     designDraw = ImageDraw.Draw(img)
+    draw_text_with_stroke_and_spacing(
+        designDraw,
+        (922, 70),
+        f"{user_data["version"]}",
+        font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Light.ttf', 18),
+        fill_color="white",
+        stroke_width=2,
+        stroke_color='black',
+        spacing=2
+    )
+
+
+    draw_text_with_stroke_and_spacing(
+        designDraw,
+        (815, 28),
+        f"可用点数   24",
+        font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Light.ttf', 22),
+        fill_color="white",
+        stroke_width=2,
+        stroke_color='black',
+        spacing=2
+    )
+
+    track_img = Image.open(rf"{maimaiImgPath}/track.png")
+    img.paste(track_img, (820, 90), track_img)
+
     designDraw.text((20, 457),
                     f"{filename} - Generated by maibox-wx at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} - 图片仅供参考",
                     font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 12), fill=text_color)

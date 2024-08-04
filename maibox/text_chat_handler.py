@@ -562,7 +562,12 @@ class TextChatHandler:
                     "plate": data["data"]["plateId"],
                     "rating": data["data"]["playerRating"],
                     "classRank": data["data"]["classRank"],
-                    "titleRare": data["data"]["titleRare"]
+                    "courseRank": data["data"]["courseRank"],
+                    "titleRare": data["data"]["titleRare"],
+                    "version": "Ver.CN{rom_version}{data_char}".format(
+                        rom_version=".".join(data["data"]["lastRomVersion"].split(".")[0:2]),
+                        data_char="-{char}".format(char=last_game_data_character)
+                    )
                 }
                 threading.Thread(target=call_user_img, args=(filename, user_data, self._wechat_utils, openid)).start()
 

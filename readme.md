@@ -6,7 +6,7 @@
 
 
 
-b50图片生成来自项目[HCskia/fu-Bot: 基于nonebot与go-cqhttp的QQ娱乐bot，提供群日常娱乐功能与舞萌DX游戏相关的信息查询功能。 (github.com)](https://github.com/HCskia/fu-Bot)
+b50图片生成来自项目[HCskia/fu-Bot](https://github.com/HCskia/fu-Bot)
 
 
 
