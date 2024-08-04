@@ -323,15 +323,11 @@ def _getCharWidth(o) -> int:
             return wid
     return 1
 
-
-
 def _coloumWidth(s:str):
     res = 0
     for ch in s:
         res += _getCharWidth(ord(ch))
     return res
-
-
 
 def _changeColumnWidth(str, len):
     res = 0
@@ -341,8 +337,6 @@ def _changeColumnWidth(str, len):
         if res <= len:
             sList.append(ch)
     return ''.join(sList)
-
-
 
 def computeRa(ds: float, achievement:float) -> int:
     baseRa = 22.4
@@ -394,7 +388,6 @@ def getRandomIcon():
             iconList.append(file)
     return rf"{maimaiImgPath}/icon/{iconList[random.randint(0, len(iconList) - 1)]}"
 
-
 def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> ImageFile | None:
     resp = requests.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload)
     if resp.status_code == 400:
@@ -406,7 +399,6 @@ def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Im
     if obj['user_general_data'] is not None :
         if nickname:
             obj['nickname'] = nickname
-
 
     logger.info(obj)
     dx: List[Dict] = obj["charts"]["dx"]
@@ -454,7 +446,6 @@ def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> Im
 
     return drawBaseImg(sd, dx, B35Rating, B15Rating, int(obj['additional_rating']), obj["user_general_data"], obj["nickname"], plate, icon, filename)
 
-
 def get_dominant_color(image):
     # 颜色模式转换，以便输出rgb颜色值
     image = image.convert('RGBA')
@@ -478,7 +469,6 @@ def get_dominant_color(image):
             dominant_color = (r, g, b)
     return dominant_color
 
-
 def draw_text_with_stroke(draw: ImageDraw, pos, text, font, fill_color, stroke_width=2, stroke_color='white'):
     # 绘制描边
     for x_offset in range(-stroke_width+1, stroke_width):
@@ -497,23 +487,15 @@ def draw_text_with_stroke_and_spacing(draw: ImageDraw.ImageDraw, pos, text, font
             if x_offset == 0 and y_offset == 0:
                 continue
             xx, yy = (pos[0] + x_offset, pos[1] + y_offset)
-            for char in text:
-                _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)  # 'W' 是一个较宽的字符，用于估算
-                draw.text((xx, yy), char, font=font, fill=stroke_color)
-                xx += char_width + spacing  # 增加间距
+            draw_text_with_spacing(draw, (xx, yy), text, font, stroke_color, spacing)
 
-    # 逐字符绘制并调整位置
-    x, y = pos
-    for char in text:
-        _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)  # 'W' 是一个较宽的字符，用于估算
-        draw.text((x, y), char, font=font, fill=fill_color)
-        x += char_width + spacing  # 增加间距
+    draw_text_with_spacing(draw, pos, text, font, fill_color, spacing)
 
 def draw_text_with_spacing(draw: ImageDraw.ImageDraw, pos, text, font, fill_color, spacing=5):
     # 逐字符绘制并调整位置
     x, y = pos
     for char in text:
-        _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)  # 'W' 是一个较宽的字符，用于估算
+        _, _, char_width, _ = draw.textbbox((0, 0), char, font=font)
         draw.text((x, y), char, font=font, fill=fill_color)
         x += char_width + spacing  # 增加间距
 
