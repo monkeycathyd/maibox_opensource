@@ -17,11 +17,6 @@ try:
     logger.info(f"Running at {os.getcwd()}")
     if not os.path.exists("./img"):
         os.mkdir("./img")
-    if platform.system() != "Windows" and (not server_config["settings"]["skip_chime_warning"]):
-        for i in range(3):
-            logger.warning("!!!!!WARNING!!!!! Local chime resolving service is not available on non-Windows system !!!!!WARNING!!!!!")
-            logger.warning("!!!!!警告!!!!! 本地解析Chime二维码服务在非Windows平台上不可用 !!!!!警告!!!!!")
-            time.sleep(0.5)
     logger.info("Starting server...")
     host = server_config["server"]["host"]
     port = server_config["server"]["port"]
