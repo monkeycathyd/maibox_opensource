@@ -1,66 +1,31 @@
-import ctypes
-import os.path
-import platform
+import datetime
+import hashlib
+import random
+
+import requests
+
+from maibox.config import get_config
+
+cfg = get_config()
+
+def get_user_id(qr_code):
+    WECHAT_ID = "SGWC"
+    GAME_ID = "MAID"
+    AIME_SALT = cfg["crypto"]["chime_salt"]
+    if len(cfg["urls"]["chime_hosts"]) > 0:
+        AIME_HOST = random.choice(cfg["urls"]["chime_hosts"])
+    else:
+        AIME_HOST = "http://ai.sys-all.cn"
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")[2:]
+    chip_id = "A63E-01E{0:08}".format(random.randint(0, 99999999))
+    key = hashlib.sha256(f"{chip_id}{timestamp}{AIME_SALT}".encode()).hexdigest().upper()
+    data_json = f"{{\"chipID\":\"{chip_id}\",\"openGameID\":\"{GAME_ID}\",\"key\":\"{key}\",\"qrCode\":\"{qr_code}\",\"timestamp\":\"{timestamp}\"}}"
+
+    resp = requests.post(f"{AIME_HOST}/wc_aime/api/get_data", data_json, headers={
+        "User-Agent": "WC_AIME_LIB",
+    })
+    return resp.json()
 
 
-class CommSafeHandle:
-    def __init__(self, handle):
-        self.handle = handle
 
-    def is_invalid(self):
-        return self.handle is None or self.handle == 0
-
-class GetUserData:
-    def __init__(self, strGameID, strChipID, strCommonKey, strQRData):
-        if platform.system() == 'Windows':
-            self.lib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__), './bin/chimelib_dll.dll'))
-            self.instance = self.create(strGameID, strChipID, strCommonKey, strQRData)
-        else:
-            self.instance = None
-
-    def create(self, strGameID, strChipID, strCommonKey, strQRData):
-        if platform.system() != 'Windows':
-            return None
-        create_func = self.lib.CCommGetUserData_Create
-        create_func.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p]
-        create_func.restype = ctypes.c_void_p
-        handle = create_func(strGameID, strChipID, strCommonKey, strQRData)
-        return CommSafeHandle(handle)
-
-    def destroy(self):
-        if not self.instance:
-            return
-        destroy_func = self.lib.CCommGetUserData_Destroy
-        destroy_func.argtypes = [ctypes.c_void_p]
-        destroy_func(self.instance.handle)
-
-    def get_error_id(self):
-        if not self.instance:
-            return 88
-        get_error_id_func = self.lib.CCommGetUserData_getErrorID
-        get_error_id_func.argtypes = [ctypes.c_void_p]
-        get_error_id_func.restype = ctypes.c_int
-        return get_error_id_func(self.instance.handle)
-
-    def is_end(self):
-        if not self.instance:
-            return True
-        is_end_func = self.lib.CCommGetUserData_isEnd
-        is_end_func.argtypes = [ctypes.c_void_p]
-        is_end_func.restype = ctypes.c_bool
-        return is_end_func(self.instance.handle)
-
-    def get_user_id(self):
-        if not self.instance:
-            return 0
-        get_user_id_func = self.lib.CCommGetUserData_getUserID
-        get_user_id_func.argtypes = [ctypes.c_void_p]
-        get_user_id_func.restype = ctypes.c_uint
-        return get_user_id_func(self.instance.handle)
-
-    def execute(self):
-        if not self.instance:
-            return
-        execute_func = self.lib.CCommGetUserData_execute
-        execute_func.argtypes = [ctypes.c_void_p]
-        execute_func(self.instance.handle)

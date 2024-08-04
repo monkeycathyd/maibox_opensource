@@ -16,6 +16,7 @@ arcade_info:  # 机台信息
   region_id: 1145 # 店铺id（必须与keychip对应，请自行寻找相关值）
   version: 1.00.00 # 游戏软件版本
 crypto:
+  chime_salt: "" # Chime加密盐（请自行寻找相关值）
   aes_iv: aes_iv # AES加密向量（请自行寻找相关值）
   aes_key: aes_key # AES加密密钥（请自行寻找相关值）
   mai_encoding: '1.00' # 加密版本
