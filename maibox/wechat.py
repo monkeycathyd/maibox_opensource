@@ -182,7 +182,7 @@ class WechatUnofficialUtils(WechatInterface):
                 "cookies": self.session.cookies.get_dict(),
                 "token": self.token
             }
-            f.write(json.dumps(cookies, indent=2))
+            f.write(json.dumps(cookies, ensure_ascii=False))
 
         self._init_self_information()
 

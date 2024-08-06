@@ -20,7 +20,7 @@ from maibox import config
 from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
 from maibox import fish_sync
-from maibox.generate_img import call_b50, call_user_img
+from maibox.generate_img import call_b50, call_user_img, call_user_img_preview
 from maibox.utils import getLogger, get_version_label
 from maibox.wechat import get_utils
 
@@ -272,7 +272,7 @@ class TextChatHandler:
             last_rom_ver_tuple = tuple(map(int, my_preview["data"]["lastRomVersion"].split(".")))
             last_data_ver_tuple = tuple(map(int, my_preview["data"]["lastDataVersion"].split(".")))
 
-            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：CN{rom_version}{data_char}\n封禁状态: {ban_state}\n\n请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息".format(
+            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：Ver.CN{rom_version}{data_char}\n封禁状态: {ban_state}\n\n请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息".format(
                 warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[1] % 5 != 0) or (last_rom_ver_tuple[0] != 1 and last_rom_ver_tuple[2] != 0) else "",
                 wxid=wxid,
                 user_id=my_preview["data"]["userId"],
@@ -284,6 +284,26 @@ class TextChatHandler:
                 # login_status="正在上机" if my_preview["data"]["isLogin"] else "未上机",
                 # whitelist_status="你当前是受邀用户\n" if my_preview["is_in_whitelist"] else ""
             ).strip()
+
+            file_id = hashlib.md5(
+                f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
+            filename = f"preview_{file_id}.png"
+
+            user_data = {
+              "nickname": my_preview["data"]["userName"],
+              "rating": my_preview["data"]["playerRating"],
+              "icon": my_preview["data"]["iconId"],
+              "awake": my_preview["data"]["totalAwake"],
+            }
+
+            threading.Thread(target=call_user_img_preview, args=(filename, user_data, self._wechat_utils, non_hashed_wxid)).start()
+
+            self._limited_mode = not self._wechat_utils.interface_test()
+            if self._limited_mode:
+                return_msg += "\n\n用户预览图片获取地址：\n{api_url}/img/preview?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(
+                    api_url=cfg["urls"]["api_url"], file_id=file_id)
+            else:
+                return_msg += "\n\n稍后发送用户预览图片"
 
         return return_msg
 

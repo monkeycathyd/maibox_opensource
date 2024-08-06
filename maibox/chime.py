@@ -9,7 +9,6 @@ from maibox.config import get_config
 cfg = get_config()
 
 def get_user_id(qr_code):
-    WECHAT_ID = "SGWC"
     GAME_ID = "MAID"
     AIME_SALT = cfg["crypto"]["chime_salt"]
     if len(cfg["urls"]["chime_hosts"]) > 0:

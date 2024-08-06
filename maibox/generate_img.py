@@ -104,25 +104,12 @@ def drawBaseImg(sd,dx,B35Rating,B15Rating,rankRating,userData,userName,plate,ico
     return BaseImg
 
 def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare="Normal",classRank=-1):
-    numToNum = {    '0': "UI_NUM_Drating_0.png",
-                    '1': "UI_NUM_Drating_1.png",
-                    '2': "UI_NUM_Drating_2.png",
-                    '3': "UI_NUM_Drating_3.png",
-                    '4': "UI_NUM_Drating_4.png",
-                    '5': "UI_NUM_Drating_5.png",
-                    '6': "UI_NUM_Drating_6.png",
-                    '7': "UI_NUM_Drating_7.png",
-                    '8': "UI_NUM_Drating_8.png",
-                    '9': "UI_NUM_Drating_9.png"}
-
     UserImg = Image.new('RGBA', (2500, 200))
 
-    plateImg = Image.open(plate)
-    plateImg = plateImg.resize((720,116))
+    plateImg = Image.open(plate).resize((720,116))
     UserImg.paste(plateImg, (830, 8), plateImg)
 
-    iconImg = Image.open(icon)
-    iconImg = iconImg.resize((100,100))
+    iconImg = Image.open(icon).resize((100,100))
     UserImg.paste(iconImg,(835,15),iconImg)
 
 
@@ -162,7 +149,7 @@ def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare
         # 计算当前位上的数字
         digit = int(totalRating / (10 ** i) % 10)
         # 打开并调整图片大小
-        numImg = Image.open(rf"{maimaiImgPath}/num/{numToNum[f'{digit}']}").resize((21, 23))
+        numImg = Image.open(rf"{maimaiImgPath}/num/UI_NUM_Drating_{digit}.png").resize((21, 23))
         # 粘贴图片
         UserImg.paste(numImg, (x_pos, 23), numImg)
 
@@ -186,8 +173,6 @@ def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare
     UserImg.paste(totalRatingImg, (940, 92), totalRatingImg)
 
     return UserImg
-
-
 
 def drawSignleImg(data,count):
     fcNameToFile = {'fc': "UI_MSS_MBase_Icon_FC.png",
@@ -305,8 +290,6 @@ def drawSignleImg(data,count):
         singleBaseImg.paste(fsIconImg, (306, 3), fsIconImg)
 
     return singleBaseImg
-
-
 
 def _getCharWidth(o) -> int:
     widths = [
@@ -550,7 +533,6 @@ def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non
         spacing=2
     )
 
-
     draw_text_with_stroke_and_spacing(
         designDraw,
         (815, 28),
@@ -577,3 +559,83 @@ def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non
 
     os.remove(f"./img/{filename}.flag")
 
+def call_user_img_preview(filename, user_data, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
+    with open(f"img/{filename}.flag", "wb") as f:
+        f.write(b"")
+    # user_data = {
+    #   "nickname": "",
+    #   "rating": "",
+    #   "icon": "",
+    #   "awake": ""
+    # }
+    base_img = Image.open(f"{maimaiImgPath}/UI_ENT_Base_Myprof.png")
+
+    draw = ImageDraw.Draw(base_img)
+    draw.text((268,101), f"{user_data['nickname']}", font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Medium.ttf', 20), fill="black")
+
+    icon = rf"{maimaiImgPath}/icon/UI_Icon_{user_data['icon']:06d}.png"
+    iconImg = Image.open(icon).resize((156, 156))
+    base_img.paste(iconImg, (68, 114), iconImg)
+
+    awake_star_img = Image.open(rf"{maimaiImgPath}/UI_ENT_Base_Myprof_Starchip.png").resize((80, 52))
+    base_img.paste(awake_star_img, (311, 253), awake_star_img)
+
+    draw_text_with_stroke(
+        draw,
+        (411, 256),
+        str(user_data["awake"]),
+        ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 46),
+        "white",
+        stroke_width=2,
+        stroke_color='black'
+    )
+
+    totalRating = int(user_data["rating"])
+    if 0 <= totalRating <= 999:
+        ratingPlate = "UI_CMN_DXRating_01.png"
+    elif 1000 <= totalRating <= 1999:
+        ratingPlate = "UI_CMN_DXRating_02.png"
+    elif 2000 <= totalRating <= 3999:
+        ratingPlate = "UI_CMN_DXRating_03.png"
+    elif 4000 <= totalRating <= 6999:
+        ratingPlate = "UI_CMN_DXRating_04.png"
+    elif 7000 <= totalRating <= 9999:
+        ratingPlate = "UI_CMN_DXRating_05.png"
+    elif 10000 <= totalRating <= 11999:
+        ratingPlate = "UI_CMN_DXRating_06.png"
+    elif 12000 <= totalRating <= 12999:
+        ratingPlate = "UI_CMN_DXRating_07.png"
+    elif 13000 <= totalRating <= 13999:
+        ratingPlate = "UI_CMN_DXRating_08.png"
+    elif 14000 <= totalRating <= 14499:
+        ratingPlate = "UI_CMN_DXRating_09.png"
+    elif 14500 <= totalRating <= 14999:
+        ratingPlate = "UI_CMN_DXRating_10.png"
+    else:
+        ratingPlate = "UI_CMN_DXRating_11.png"
+
+    ratingPlateImg = Image.open(rf"{maimaiImgPath}/Rating_big/{ratingPlate}").resize((312,58))
+    base_img.paste(ratingPlateImg, (253, 163), ratingPlateImg)
+
+    # 定义偏移量和初始x坐标
+    offset = 25
+    start_x = 496
+    start_y = 177
+    x_positions = [start_x - i * offset for i in range(len(str(totalRating)))][-5:]
+
+    # 根据totalRating的位数处理图片
+    for i, x_pos in enumerate(x_positions):
+        # 计算当前位上的数字
+        digit = int(totalRating / (10 ** i) % 10)
+        # 打开并调整图片大小
+        numImg = Image.open(rf"{maimaiImgPath}/num/UI_NUM_Drating_{digit}.png")
+        # 粘贴图片
+        base_img.paste(numImg, (x_pos, start_y), numImg)
+
+    base_img.save(f"./img/{filename}", format="png", quality=90)
+
+    if wechat_utils and wechat_utils.interface_test():
+        wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)
+        os.remove(f"./img/{filename}")
+
+    os.remove(f"./img/{filename}.flag")
