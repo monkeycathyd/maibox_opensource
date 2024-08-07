@@ -18,7 +18,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t error063/maibox:${{ github.ref_name }} .
-          docker tag error063/maibox:${{ github.ref_name }} error063/maibox:latest
-          docker push error063/maibox:${{ github.ref_name }}
+          docker build -t error063/maibox:${{ github.sha }} .
+          docker tag error063/maibox:${{ github.sha }} error063/maibox:latest
+          docker push error063/maibox:${{ github.sha }}
           docker push error063/maibox:latest
