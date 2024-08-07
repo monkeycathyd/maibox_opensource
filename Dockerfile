@@ -1,15 +1,12 @@
-FROM error063/maibox_base_system:1
+FROM python:3.12.4-alpine3.20
 
 WORKDIR /app
 
-RUN pip config unset global.index-url
-
 COPY . .
 
-RUN pip3 install -r requirements.txt
-
-RUN chmod +x entrypoint.sh
+RUN apk add --no-cache --update openjdk21-jre && \
+    pip3 install --no-cache-dir -r requirements.txt
 
 EXPOSE 80/tcp
 
-ENTRYPOINT [ "/app/entrypoint.sh" ]
+ENTRYPOINT [ "python3", "-m", "maibox" ]

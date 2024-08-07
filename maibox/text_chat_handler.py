@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import logging
+import os
 import random
 import re
 import string
@@ -12,7 +13,7 @@ from io import BytesIO
 
 import jieba
 import requests
-from pyzbar.pyzbar import decode
+import zxing
 from PIL import Image
 
 import maibox
@@ -29,6 +30,8 @@ logger = getLogger(__name__)
 
 cfg = config.get_config()
 agreement = cfg["agreement"]["text"].format(place="公众号", negopt="取消关注")
+
+reader = zxing.BarCodeReader()
 
 class TextChatHandler:
     def __init__(self, dao):
@@ -65,27 +68,33 @@ class TextChatHandler:
         return [word for word in jieba.lcut(text.strip()) if word not in [" ","\n"]]
 
     def decode_qr_from_url(self, url):
+        code = ""
         # 下载图片
         response = requests.get(url)
+        hashed_url = hashlib.sha256(url.encode()).hexdigest().lower()
         # 将二进制数据转换为图像对象
-        img_bytes = BytesIO(response.content)
-        image = Image.open(img_bytes)
+        with open(f"temp-{hashed_url}.jpg", "wb") as f:
+            f.write(response.content)
         # 解码二维码
-        decoded_objects = decode(image)
+        decoded_objects = reader.decode(f"temp-{hashed_url}.jpg")
         # 返回解码结果
         if decoded_objects:
-            return decoded_objects[0].data.decode('utf-8')
-        else:
-            return None
+            code = decoded_objects.parsed
+        os.remove(f"temp-{hashed_url}.jpg")
+        return code
 
     def process(self, data, version, region):
-        msg = ""
-        if data["MsgType"] == "event":
-            msg = self.process_event(data["Event"], data["FromUserName"], version, region)
-        elif data["MsgType"] == "image":
-            msg = self.process_img(data["PicUrl"], data["FromUserName"])
-        elif data["MsgType"] == "text":
-            msg = self.process_chat(data["Content"], data["FromUserName"], version, region)
+        try:
+            msg = ""
+            if data["MsgType"] == "event":
+                msg = self.process_event(data["Event"], data["FromUserName"], version, region)
+            elif data["MsgType"] == "image":
+                msg = self.process_img(data["PicUrl"], data["FromUserName"])
+            elif data["MsgType"] == "text":
+                msg = self.process_chat(data["Content"], data["FromUserName"], version, region)
+        except Exception as e:
+            hashed_wxid = hashlib.md5(data["FromUserName"].encode()).hexdigest().lower()
+            msg = self.handle_error(hashed_wxid, data["Content"], version, region, data["FromUserName"], e)
 
         return_msg = {
             "FromUserName": data["ToUserName"],
@@ -175,7 +184,6 @@ class TextChatHandler:
         else:
             self._wechat_utils.send_text(return_msg, wxid)
             return ""
-
 
     def handle_error(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str="", e: BaseException=Exception()):
         traceback_info = traceback.format_exc()
