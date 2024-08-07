@@ -171,7 +171,7 @@ def frontend_config():
 def wechat():
     # 使用微信云托管方式接入微信公众号
     version = request.headers.get("X-Cloudbase-Version", "unknown")
-    region = request.headers.get("X-Wx-Region", "unknown")
+    region = maibox.build_date
     if request.headers.get("X-Wx-Appid", "") != server_config["wechat"]["app_id"]:
         return "error", 403
     if request.method == 'POST':
@@ -190,7 +190,8 @@ def wechat():
 @app.route('/api/wechat/native', methods=['GET', 'POST'], endpoint='wechat_native')
 def wechat_native():
     # 使用传统方式接入微信公众号
-    version = region = "native_mode"
+    version = "native_mode"
+    region = maibox.build_date
     if not check_wx_auth(request.args.get('signature'), request.args.get('timestamp'), request.args.get('nonce')):
         return ""
     if request.method == "GET":

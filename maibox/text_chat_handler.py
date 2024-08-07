@@ -589,7 +589,12 @@ class TextChatHandler:
                     "version": "Ver.CN{rom_version}{data_char}".format(
                         rom_version=".".join(data["data"]["lastRomVersion"].split(".")[0:2]),
                         data_char="-{char}".format(char=last_game_data_character)
-                    )
+                    ),
+                    "awake": data["data"]["totalAwake"],
+                    "chara": data["data"]["charaSlot"],
+                    "charaName": data["data"]["charaName"],
+                    "charaLevel": data["data"]["charaLevel"],
+                    "charaAwakening": data["data"]["charaAwakening"]
                 }
                 threading.Thread(target=call_user_img, args=(filename, user_data, self._wechat_utils, openid)).start()
 
