@@ -19,5 +19,5 @@ jobs:
         context: .
         push: true
         tags: >
-          ${{ secrets.DOCKERHUB_USERNAME }}/maibox:${{ github.sha }},
-          ${{ secrets.DOCKERHUB_USERNAME }}/maibox:latest
+          ${{ secrets.DOCKER_HUB_USERNAME }}/maibox:${{ github.sha }},
+          ${{ secrets.DOCKER_HUB_USERNAME }}/maibox:latest
