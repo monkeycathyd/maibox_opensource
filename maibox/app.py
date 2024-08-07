@@ -10,6 +10,7 @@ import time
 import urllib3
 import xmltodict
 
+import maibox
 import maibox.config as config
 from flask import Flask, request, redirect, Response, send_file
 from flask_cors import CORS
@@ -160,6 +161,7 @@ def frontend_config():
         "frontend_setting": config.get_config_with_reload()["settings"]["frontend_setting"],
         "release_info": {
             "version": request.headers.get("X-Cloudbase-Version", "unknown"),
+            "git_sha": maibox.git_sha
         },
         "support_mai_version": list(map(int, server_config["arcade_info"]["data_version"].split("."))),
         "time_avg": ""
