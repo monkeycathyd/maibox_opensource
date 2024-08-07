@@ -411,12 +411,10 @@ def drawCharaImg(charaId, charaName, charaLevel, charaAwake, themeColor=None):
         chara_main_color = (249, 198, 147)
     else:
         chara_main_color = themeColor
-    text_color = tuple(abs(c + 10) % 255 for c in chara_main_color)
-
     chara_final_img = circle_corner(Image.new('RGBA', (130, 258), color=chara_main_color), 25)
 
     chara_final_img.paste(chara_base_img, (13, 13), chara_base_img)
-    chara_info_img = Image.new('RGBA', (126, 180), color=(255, 255, 255, 0))
+    chara_info_img = Image.new('RGBA', (130, 180), color=(255, 255, 255, 0))
     draw = ImageDraw.Draw(chara_info_img)
     font = ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 12)
     _, _, text_width, text_height = draw.textbbox((0, 0), "我", font=font)
@@ -425,7 +423,7 @@ def drawCharaImg(charaId, charaName, charaLevel, charaAwake, themeColor=None):
     last_y = 0
     for i, line in enumerate(para):
         _, _, text_width, text_height = draw.textbbox((0, 0), line, font=font)
-        draw.text((abs(126-text_width)//2, last_y), line, 'black', font)
+        draw.text((abs(130-text_width)//2, last_y), line, 'black', font)
         last_y += text_height + leading
     last_y = 42
 
@@ -433,11 +431,11 @@ def drawCharaImg(charaId, charaName, charaLevel, charaAwake, themeColor=None):
     level_text = f"Lv.{charaLevel}"
     font = ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 16)
     _, _, text_width, text_height = draw.textbbox((0, 0), level_text, font=font)
-    draw.text((abs(126-text_width)//2, last_y), level_text, font=font, fill="black")
+    draw.text((abs(130-text_width)//2, last_y), level_text, font=font, fill="black")
 
     awake_star_img = Image.open(rf"{maimaiImgPath}/UI_ENT_Base_Myprof_Starchip.png").convert("RGBA").resize((28, 17))
-    draw.text((abs(97+60)//2, 79), f"{charaAwake}", font=font, fill="black")
-    chara_info_img.paste(awake_star_img, (abs(87)//2, 80), awake_star_img)
+    draw.text((78, 79), f"{charaAwake}", font=font, fill="black")
+    chara_info_img.paste(awake_star_img, (43, 80), awake_star_img)
 
     chara_final_img.paste(chara_info_img, (0, 120), chara_info_img)
     return chara_final_img
