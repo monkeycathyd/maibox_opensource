@@ -272,7 +272,7 @@ class TextChatHandler:
             last_rom_ver_tuple = tuple(map(int, my_preview["data"]["lastRomVersion"].split(".")))
             last_data_ver_tuple = tuple(map(int, my_preview["data"]["lastDataVersion"].split(".")))
 
-            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：Ver.CN{rom_version}{data_char}\n封禁状态: {ban_state}\n\n请在微信“舞萌 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息".format(
+            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：Ver.CN{rom_version}{data_char}\n封禁状态: {ban_state}\n\n请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息".format(
                 warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[1] % 5 != 0) or (last_rom_ver_tuple[0] != 1 and last_rom_ver_tuple[2] != 0) else "",
                 wxid=wxid,
                 user_id=my_preview["data"]["userId"],
