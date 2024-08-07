@@ -2,7 +2,9 @@ import logging
 import os
 import math
 import random
+import re
 from datetime import datetime
+import textwrap
 
 
 import colorsys
@@ -169,8 +171,11 @@ def drawUserImg(data,title,totalRating,rankRating,userName,icon,plate,title_rare
 
     totalRatingImg = Image.open(rf"{maimaiImgPath}/shougou/UI_CMN_Shougou_{title_rare.title()}.png")#421*92  227*50
     totalRatingDraw = ImageDraw.Draw(totalRatingImg)
-    totalRatingDraw.text((10, 7), title, font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 11),fill=(0, 0, 0))
-    UserImg.paste(totalRatingImg, (940, 92), totalRatingImg)
+    font = ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 11)
+    _, _, text_width, text_height = totalRatingDraw.textbbox((0, 0), title, font=font)
+    totalRatingDraw.text((abs(272-text_width)//2, 7), title, font=font, fill="black")
+    # totalRatingDraw.text((10, 7), title, font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 11),fill=(0, 0, 0))
+    UserImg.paste(totalRatingImg, (938, 92), totalRatingImg)
 
     return UserImg
 
@@ -371,6 +376,121 @@ def getRandomIcon():
             iconList.append(file)
     return rf"{maimaiImgPath}/icon/{iconList[random.randint(0, len(iconList) - 1)]}"
 
+def add_long_text(text, text_width):
+    para = textwrap.wrap(text, width=text_width)
+    write_text = []
+    for i, line in enumerate(para):
+        write_text.append(line)
+        punc = re.search("[,.，。》、—”（）()]+", line)
+        if punc:
+            # 如果有标点符号开头
+            if punc.start() == 0:
+                line = write_text.pop(-1)
+                former = write_text.pop(-1)
+                former += punc.group()
+                write_text.append(former)
+                line = line[punc.end():]
+                if len(line) > 0:
+                    write_text.append(line)
+    return write_text
+
+def drawCharaImg(charaId, charaName, charaLevel, charaAwake, themeColor=None):
+    chara_base_img = Image.open(rf"{maimaiImgPath}/chara_bases/UI_Chara_Base.png").convert("RGBA").resize((100, 100))
+    chara_frame_img = Image.open(rf"{maimaiImgPath}/chara_bases/UI_Chara_Frame.png").convert("RGBA").resize((103, 103))
+    try:
+        chara_img = Image.open(rf"{maimaiImgPath}/chara/UI_Chara_{charaId:06d}.png").convert("RGBA").resize((100, 100))
+    except:
+        chara_img = Image.open(rf"{maimaiImgPath}/chara/UI_Chara_000000.png").convert("RGBA").resize((100, 100))
+
+
+    chara_base_img.paste(chara_img, (0, 0), chara_img)
+    chara_base_img.paste(chara_frame_img, (-1, -1), chara_frame_img)
+    chara_base_img = img_circle(chara_base_img, 100)
+
+    if not themeColor:
+        chara_main_color = (249, 198, 147)
+    else:
+        chara_main_color = themeColor
+    text_color = tuple(abs(c + 10) % 255 for c in chara_main_color)
+
+    chara_final_img = circle_corner(Image.new('RGBA', (130, 258), color=chara_main_color), 25)
+
+    chara_final_img.paste(chara_base_img, (13, 13), chara_base_img)
+    chara_info_img = Image.new('RGBA', (126, 180), color=(255, 255, 255, 0))
+    draw = ImageDraw.Draw(chara_info_img)
+    font = ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 12)
+    _, _, text_width, text_height = draw.textbbox((0, 0), "我", font=font)
+    para = textwrap.wrap(charaName, 10)
+    leading = 3  # 文字段落间隔
+    last_y = 0
+    for i, line in enumerate(para):
+        _, _, text_width, text_height = draw.textbbox((0, 0), line, font=font)
+        draw.text((abs(126-text_width)//2, last_y), line, 'black', font)
+        last_y += text_height + leading
+    last_y = 42
+
+    # draw.text((0, 0), charaName, font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 12), fill="black")
+    level_text = f"Lv.{charaLevel}"
+    font = ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 16)
+    _, _, text_width, text_height = draw.textbbox((0, 0), level_text, font=font)
+    draw.text((abs(126-text_width)//2, last_y), level_text, font=font, fill="black")
+
+    awake_star_img = Image.open(rf"{maimaiImgPath}/UI_ENT_Base_Myprof_Starchip.png").convert("RGBA").resize((28, 17))
+    draw.text((abs(97+60)//2, 79), f"{charaAwake}", font=font, fill="black")
+    chara_info_img.paste(awake_star_img, (abs(87)//2, 80), awake_star_img)
+
+    chara_final_img.paste(chara_info_img, (0, 120), chara_info_img)
+    return chara_final_img
+
+
+def img_circle(img_src, img_width):
+    x = img_width
+    r = int(x / 2)
+
+    # turn src image to square with x width
+    img_src = img_src.convert("RGBA").resize((x, x))
+
+    # create a new pinture which is used for return value
+    img_return = Image.new('RGBA', (x, x), (255, 255, 255, 0))
+
+    # create a white picture,alpha tunnuel is 100% transparent
+    img_white = Image.new('RGBA', (x, x), (255, 255, 255, 0))
+
+    # create the objects link to the pixel matrix of img
+    p_src = img_src.load()
+    p_return = img_return.load()
+    p_white = img_white.load()
+
+    # set the pixels of the return picture
+    for i in range(x):
+        for j in range(x):
+            lx = abs(i - r)
+            ly = abs(j - r)
+            l = (pow(lx, 2) + pow(ly, 2)) ** 0.5
+
+            if l < r:
+                p_return[i, j] = p_src[i, j]
+            if l > r:
+                p_return[i, j] = p_white[i, j]
+    return img_return
+
+
+def circleImage(img, size):
+    img1 = img.resize(size).convert("RGBA")
+    w, h = img1.size
+
+    # 定义alpha通道
+    alpha = Image.new("L", img1.size, color=0)
+    draw = ImageDraw.Draw(alpha)
+
+    # 绘制一个圆，填充为255，即白色
+    draw.ellipse((0, 0, w, h), fill=255)
+
+    # 应用透明通道到图片上
+    img1.putalpha(alpha)
+
+    return img1
+
 def generate(payload: Dict, nickname: str="", icon_id: int=0, filename="") -> ImageFile | None:
     resp = requests.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload)
     if resp.status_code == 400:
@@ -438,7 +558,7 @@ def get_dominant_color(image):
     dominant_color = (0,0,0)
     for count, (r, g, b, a) in image.getcolors(image.size[0] * image.size[1]):
         # 跳过纯黑色
-        if a == 0:
+        if (a == 0) or (sum((r, g, b, a)) == 0):
             continue
         saturation = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)[1]
         y = min(abs(r * 2104 + g * 4130 + b * 802 + 4096 + 131072) >> 13, 235)
@@ -547,6 +667,13 @@ def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non
     track_img = Image.open(rf"{maimaiImgPath}/track.png")
     img.paste(track_img, (820, 90), track_img)
 
+    chara_start_x = 25
+    chara_start_y = 173
+    for chara in zip(user_data["chara"], user_data["charaName"], user_data["charaLevel"], user_data["charaAwakening"], range(len(user_data["chara"]))):
+        chara_img = drawCharaImg(chara[0], chara[1], chara[2], chara[3], theme_color if chara[4] == 0 else None)
+        img.paste(chara_img, (chara_start_x, chara_start_y), chara_img)
+        chara_start_x += 139
+
     designDraw.text((20, 457),
                     f"{filename} - Generated by maibox-wx at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} - 图片仅供参考",
                     font=ImageFont.truetype(rf'{materialPath}/GenSenMaruGothicTW-Bold.ttf', 12), fill=text_color)
@@ -562,12 +689,6 @@ def call_user_img(filename, user_data, wechat_utils: WechatInterface = None, non
 def call_user_img_preview(filename, user_data, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
-    # user_data = {
-    #   "nickname": "",
-    #   "rating": "",
-    #   "icon": "",
-    #   "awake": ""
-    # }
     base_img = Image.open(f"{maimaiImgPath}/UI_ENT_Base_Myprof.png")
 
     draw = ImageDraw.Draw(base_img)
