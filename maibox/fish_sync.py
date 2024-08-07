@@ -6,18 +6,15 @@ from maibox.utils import getLogger
 
 logger = getLogger(__name__)
 
-def compose_post_form(username, password, content):
-    return f"<login><u>{username}</u><p>{password}</p></login>" + re.search(r'<html.*?>(.*?)</html>', content, re.DOTALL).group(1).replace('\n', ' ').strip()
 
-
-def update_fish(username, password, userid):
-    details = music.render_html(userid)
+def update_fish(token, userid):
     resp = requests.post(
         url='https://www.diving-fish.com/api/pageparser/page',
         headers={
-            'Content-Type': 'text/plain'
+            'Content-Type': 'text/plain',
+            "Import-Token": token
         },
-        data=compose_post_form(username, password, details)
+        json=music.get_user_music_details_df(userid)
     )
 
     logger.info(resp.text)

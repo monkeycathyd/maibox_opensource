@@ -90,6 +90,34 @@ def get_user_music_details(uid: int):
             continue
 
     return final_list
+def get_user_music_details_df(uid: int):
+    """
+    获取并处理指定用户ID的音乐详情。
+
+    :param uid: 用户ID
+    :return: 用户音乐详情列表
+    """
+    req = HTTPRequest(uid)
+    data = req.Request("GetUserMusicApiMaimaiChn", {"userId": uid, "nextIndex": 0, "maxCount": 2147483647})
+    userMusicDetailList = [detail for music in data["userMusicList"] for detail in music["userMusicDetailList"]]
+
+    final_list = []
+    for music in userMusicDetailList:
+        try:
+            final_list.append({
+                "title": data_manager.get_resource(int(music["musicId"]))["title"],
+                "achievements": standard_achievement(int(music["achievement"])),
+                "fc": comboStatus_list[music["comboStatus"]].replace("back", ""),
+                "fs": syncStatus_list[music["syncStatus"]].replace("back", "").replace("sync", ""),
+                "dxScore": music["deluxscoreMax"],
+                "rate": get_rating(float(standard_achievement(int(music["achievement"]))[:-1])).lower(),
+                "level_index": music["level"],
+                "type": "DX" if len(str(music["musicId"])) >= 5 and str(music["musicId"])[0] == "1" else "SD"
+            })
+        except:
+            continue
+
+    return final_list
 
 def render_html(uid: int):
     env = Environment(loader=FileSystemLoader(template_dir))

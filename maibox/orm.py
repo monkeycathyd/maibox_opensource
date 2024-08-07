@@ -1,9 +1,10 @@
+import datetime
 from urllib import parse
 from typing import List, Tuple
 
 
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base, InstrumentedAttribute
 
 import maibox.config as config
 from maibox.utils import getLogger
@@ -40,6 +41,26 @@ class DfBind(Base):
     df_password = Column(String(255))
     def __repr__(self):
         return f"<DfBind(wxid={self.wxid}, df_account={self.df_account}, df_password={self.df_password})>"
+
+class DfBindNew(Base):
+    __tablename__ = "df_bind_new"
+    id = Column(Integer, primary_key=True)
+    wxid = Column(String(255))
+    df_token = Column(String(511))
+    def __repr__(self):
+        return f"<DfBind(wxid={self.wxid}, df_account={self.df_token})>"
+
+class ActionLimit(Base):
+    __tablename__ = "action_limit"
+    id = Column(Integer, primary_key=True)
+    trackable_significant = Column(String(255), nullable=False)
+    action_type = Column(String(255), nullable=False)
+    usage_count = Column(Integer, default=0)
+    period_first_start_time = Column(DateTime, default=datetime.datetime.min)
+    next_reset_time = Column(DateTime, default=datetime.datetime.max)
+    def __repr__(self):
+        return f"<ActionLimit(wxid={self.trackable_significant}, action_type={self.action_type}, usage_count={self.usage_count}, period_first_start_time={self.period_first_start_time}, next_reset_time={self.next_reset_time})>"
+
 
 def get_session():
     Session = sessionmaker(bind=engine)
@@ -97,9 +118,16 @@ class Dao:
             self._session.rollback()
             raise e
 
+    def get_all_df_accounts(self) -> list[list[str]]:
+        try:
+            df_binds = self._session.query(DfBind).all()
+            return [list(map(str, (df_bind.wxid, df_bind.df_account, df_bind.df_password))) for df_bind in df_binds]
+        except Exception as e:
+            _logger.error(f"Error during get_all_df_accounts: {e}")
+            self._session.rollback()
+            raise e
+
     def bind_df(self, wxid: str, df_account: str, df_password: str) -> int:
-        # if not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", df_account):
-        #     return 1
         try:
             if self.get_df_account(wxid) != (None, None):
                 return 2
@@ -124,6 +152,41 @@ class Dao:
             _logger.error(f"Error during unbind_df: {e}")
             self._session.rollback()
             raise e
+
+    def get_df_token(self, wxid: str) -> str:
+        try:
+            df_bind = self._session.query(DfBindNew).filter(DfBindNew.wxid == wxid).first()
+            if not df_bind:
+                return "None"
+            return str(df_bind.df_token)
+        except Exception as e:
+            _logger.error(f"Error during get_df_token: {e}")
+            self._session.rollback()
+            raise e
+
+    def bind_df_token(self, wxid: str, df_token: str) -> int:
+        try:
+            if self.get_df_token(wxid) != "None":
+                return 2
+            df_bind = DfBindNew(wxid=wxid, df_token=df_token)
+            self._session.add(df_bind)
+            self._session.commit()
+            return 0
+        except Exception as e:
+            _logger.error(f"Error during bind_df_token: {e}")
+            self._session.rollback()
+            raise e
+
+    def unbind_df_token(self, wxid: str) -> bool:
+        try:
+            if not self.get_df_token(wxid):
+                return False
+            df_bind = self._session.query(DfBindNew).filter(DfBindNew.wxid == wxid).first()
+            self._session.delete(df_bind)
+            self._session.commit()
+            return True
+        except Exception as e:
+            _logger.error(f"Error during unbind_df_token: {e}")
 
     def getAllWhitelist(self) -> list:
         try:
@@ -165,5 +228,60 @@ class Dao:
             return True
         except Exception as e:
             _logger.error(f"Error during remove_white_list: {e}")
+            self._session.rollback()
+            raise e
+
+    def add_usage_count(self, trackable_significant: str, action_type: str, usage_count: int, period: int):
+        try:
+            action_limit = self._session.query(ActionLimit).filter(ActionLimit.trackable_significant == trackable_significant, ActionLimit.action_type == action_type).first()
+            if not action_limit:
+                action_limit = ActionLimit(trackable_significant=trackable_significant, action_type=action_type)
+                self._session.add(action_limit)
+                self._session.commit()
+            action_limit.usage_count += usage_count
+            action_limit.period_first_start_time = datetime.datetime.now()
+            action_limit.next_reset_time = datetime.datetime.now() + datetime.timedelta(hours=period)
+            self._session.commit()
+            return True
+        except Exception as e:
+            _logger.error(f"Error during add_usage_count: {e}")
+            self._session.rollback()
+            raise e
+
+    def reset_limit(self, trackable_significant: str, action_type: str, period: int):
+        try:
+            action_limit = self._session.query(ActionLimit).filter(ActionLimit.trackable_significant == trackable_significant, ActionLimit.action_type == action_type).first()
+            if not action_limit:
+                return False
+            action_limit.usage_count = 0
+            action_limit.period_first_start_time = datetime.datetime.now()
+            action_limit.next_reset_time = datetime.datetime.now() + datetime.timedelta(hours=period)
+            self._session.commit()
+            return True
+        except Exception as e:
+            _logger.error(f"Error during reset_limit: {e}")
+            self._session.rollback()
+            raise e
+
+    def is_reached_limit(self, trackable_significant: str, action_type: str, max_usage: int, period: int):
+        try:
+            action_limit = self.get_usage_count(trackable_significant, action_type, period)
+            return action_limit >= max_usage
+        except Exception as e:
+            _logger.error(f"Error during is_reached_limit: {e}")
+            self._session.rollback()
+            raise e
+
+    def get_usage_count(self, trackable_significant: str, action_type: str, period: int):
+        try:
+            action_limit = self._session.query(ActionLimit).filter(ActionLimit.trackable_significant == trackable_significant, ActionLimit.action_type == action_type).first()
+            if not action_limit:
+                return 0
+            if action_limit.next_reset_time <= datetime.datetime.now():
+                self.reset_limit(trackable_significant, action_type, period)
+                return 0
+            return action_limit.usage_count
+        except Exception as e:
+            _logger.error(f"Error during get_usage_count: {e}")
             self._session.rollback()
             raise e
