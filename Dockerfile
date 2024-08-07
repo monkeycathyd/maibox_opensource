@@ -7,6 +7,4 @@ COPY . .
 RUN apk add --no-cache --update openjdk21-jre && \
     pip3 install --no-cache-dir -r requirements.txt
 
-EXPOSE 80/tcp
-
 ENTRYPOINT [ "python3", "-m", "maibox" ]

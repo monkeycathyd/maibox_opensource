@@ -2,7 +2,13 @@
 
 面向微信公众平台的舞萌bot的实现
 
+[Docker镜像](https://hub.docker.com/r/error063/maibox)
+
+
+
 [配置教程](tourial.md)
+
+[配置教程（Docker）](tourial_docker.md)
 
 
 
