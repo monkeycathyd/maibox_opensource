@@ -104,16 +104,16 @@ def get_user_music_details_df(uid: int):
     final_list = []
     for music in userMusicDetailList:
         try:
-            final_list.append({
-                "title": data_manager.get_resource(int(music["musicId"]))["title"],
-                "achievements": standard_achievement(int(music["achievement"])),
-                "fc": comboStatus_list[music["comboStatus"]].replace("back", ""),
-                "fs": syncStatus_list[music["syncStatus"]].replace("back", "").replace("sync", ""),
-                "dxScore": music["deluxscoreMax"],
-                "rate": get_rating(float(standard_achievement(int(music["achievement"]))[:-1])).lower(),
-                "level_index": music["level"],
-                "type": "DX" if len(str(music["musicId"])) >= 5 and str(music["musicId"])[0] == "1" else "SD"
-            })
+            if music["level"] < 6:
+                final_list.append({
+                    "achievements": float(standard_achievement(int(music["achievement"])).replace("%", "")),
+                    "dxScore": music["deluxscoreMax"],
+                    "fc": comboStatus_list[music["comboStatus"]].replace("back", ""),
+                    "fs": syncStatus_list[music["syncStatus"]].replace("back", "").replace("sync", ""),
+                    "level_index": music["level"],
+                    "title": data_manager.get_resource(int(music["musicId"]))["title"],
+                    "type": "DX" if len(str(music["musicId"])) >= 5 and str(music["musicId"])[0] == "1" else "SD"
+                })
         except:
             continue
 

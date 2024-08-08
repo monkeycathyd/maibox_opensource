@@ -17,11 +17,11 @@ import zxing
 from PIL import Image
 
 import maibox
-from maibox import helpers
+from maibox import helpers, music_record_generate
 from maibox import config
+from maibox.diving_fish_api import DivingFishApi
 from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
-from maibox import fish_sync
 from maibox.generate_img import call_b50, call_user_img, call_user_img_preview
 from maibox.utils import getLogger, get_version_label
 from maibox.wechat import get_utils
@@ -30,6 +30,8 @@ logger = getLogger(__name__)
 
 cfg = config.get_config()
 agreement = cfg["agreement"]["text"].format(place="公众号", negopt="取消关注")
+
+handled_msg_id = []
 
 reader = zxing.BarCodeReader()
 
@@ -84,7 +86,12 @@ class TextChatHandler:
         return code
 
     def process(self, data, version, region):
+        global handled_msg_id
         try:
+            if data["MsgId"] in handled_msg_id:
+                return ""
+            handled_msg_id.append(data["MsgId"])
+            handled_msg_id = handled_msg_id[-100:]
             msg = ""
             if data["MsgType"] == "event":
                 msg = self.process_event(data["Event"], data["FromUserName"], version, region)
@@ -164,25 +171,34 @@ class TextChatHandler:
         if 4 <= int(time.strftime("%H")) < 7:
             return "服务器维护期间暂停对外服务，请于北京时间 7:00 后再试"
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
-        return_msg = ""
-        try:
-            split_content = self.final_word_cut(content)
-            if split_content[0] in self.command_map:
-                return_msg = self.command_map[split_content[0]](hashed_wxid, content, version, region, wxid)
-            else:
-                return_msg = self.handle_ai(hashed_wxid, content, version, region, wxid)
-        except Exception as e:
-            return_msg = self.handle_error(hashed_wxid, content, version, region, wxid, e)
-        finally:
-            logger.info(f"Hashed User OpenID: {hashed_wxid}")
-            logger.info(f"User: {wxid}\nSend: {content}\nResponse: {return_msg}")
+        def inner_handler(inner_wxid=""):
+            return_msg = ""
+            try:
+                split_content = self.final_word_cut(content)
+                if split_content[0] in self.command_map:
+                    return_msg = self.command_map[split_content[0]](hashed_wxid, content, version, region, inner_wxid)
+                else:
+                    return_msg = self.handle_ai(hashed_wxid, content, version, region, inner_wxid)
+            except Exception as e:
+                return_msg = self.handle_error(hashed_wxid, content, version, region, inner_wxid, e)
+            finally:
+                logger.info(f"Hashed User OpenID: {hashed_wxid}")
+                logger.info(f"User: {inner_wxid}\nSend: {content}\nResponse: {return_msg}")
+
+            return_msg = return_msg.strip()
+
+            if inner_wxid:
+                self._wechat_utils.send_text(return_msg, inner_wxid)
+                return ""
+
+            return return_msg
 
         self._limited_mode = not self._wechat_utils.interface_test()
 
         if self._limited_mode:
-            return return_msg
+            return inner_handler()
         else:
-            self._wechat_utils.send_text(return_msg, wxid)
+            threading.Thread(target=inner_handler, args=(wxid,)).start()
             return ""
 
     def handle_error(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str="", e: BaseException=Exception()):
@@ -373,34 +389,43 @@ class TextChatHandler:
         return return_msg
 
     def handle_sync(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
-        split_content = self.final_word_cut(content)
+        split_content = content.split(" ")
         return_msg = ""
         flag = False
         uid = self.dao.getUid(wxid)
         if not uid:
             return_msg = "未绑定，发送 “绑定 [你的UserID]” 绑定"
             return return_msg
-        username, password = self.dao.get_df_account(wxid)
-        if username and password:
-            return_msg += "水鱼账户: {username}\n".format(username=username)
+        token = self.dao.get_df_token(wxid)
+        if token:
+            df_api = DivingFishApi(token)
+            if not df_api.username:
+                self.dao.unbind_df_token(wxid)
+                return_msg += "水鱼账户绑定失效，发送 “同步 [导入Token]” 以重新绑定水鱼账户"
+                return return_msg
+            return_msg += "水鱼账户: {username}\n".format(username=df_api.username)
             if len(split_content) == 2 and split_content[1] == "解绑":
-                self.dao.unbind_df(wxid)
+                self.dao.unbind_df_token(wxid)
                 return_msg += "解绑成功"
-            else:
-                flag = True
+                return return_msg
         else:
-            if len(content.split(" ")) != 3:
-                return_msg += "发送 “同步 [用户名] [密码]” 以绑定水鱼账户"
+            if len(content.split(" ")) != 2:
+                return_msg += "发送 “同步 [导入Token]” 以绑定水鱼账户"
+                return return_msg
             else:
-                username, password = content.split(" ")[1:]
-                self.dao.bind_df(wxid, username, password)
+                token = content.split(" ")[1]
+                df_api = DivingFishApi(token)
+                if not df_api.username:
+                    return_msg += "水鱼账户绑定失败，请检查导入Token是否正确"
+                    return return_msg
+                return_msg += "水鱼账户: {username}\n".format(username=df_api.username)
+                self.dao.bind_df_token(wxid, token)
                 return_msg += "绑定成功，发送 “同步 解绑” 以解绑水鱼账户，发送 “同步” 以同步乐曲数据到水鱼查分器\n"
-                flag = True
-        if flag:
-            if fish_sync.update_fish(username, password, uid):
-                return_msg += "同步成功"
-            else:
-                return_msg += "同步失败，请检查用户名和密码是否正确"
+        detail = music_record_generate.get_user_music_details_df(uid)
+        if df_api.update_player_records(detail):
+            return_msg += "同步成功"
+        else:
+            return_msg += "同步失败，请检查导入Token是否正确"
         return return_msg
 
     def handle_b50(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
@@ -651,25 +676,32 @@ class TextChatHandler:
 
     def b50(self, wxid, non_hashed_wxid=""):
         return_msg = ""
-        username, password = self.dao.get_df_account(wxid)
+        token = self.dao.get_df_token(wxid)
         uid = self.dao.getUid(wxid)
         preview = helpers.get_preview(uid, self.dao)
         nickname = preview["data"]["userName"]
         icon_id = preview["data"]["iconId"]
-        if username and password:
-            return_msg += "水鱼账户: {username}\n".format(username=username)
-            if fish_sync.update_fish(username, password, uid):
+        if token:
+            df_api = DivingFishApi(token)
+            if df_api.username is None:
+                self.dao.unbind_df_token(wxid)
+                return_msg += "水鱼未绑定，发送“同步 [同步Token]”以重新绑定水鱼账户"
+                return return_msg
+            return_msg += "水鱼账户: {username}\n".format(username=df_api.username)
+            detail = music_record_generate.get_user_music_details_df(uid)
+            if df_api.update_player_records(detail):
                 return_msg += "水鱼同步成功\n"
             else:
-                return_msg += "水鱼同步失败，请检查用户名和密码是否正确"
+                return_msg += "水鱼同步失败，请检查同步Token是否正确"
+                return return_msg
         else:
-            return_msg += "未绑定水鱼账户，发送“同步 [用户名] [密码]”以绑定水鱼账户\n"
+            return_msg += "未绑定水鱼账户，发送“同步 [同步Token]”以绑定水鱼账户\n"
             return return_msg
         file_id = hashlib.md5(
             f"{wxid}_{int(time.time())}_{"".join(random.sample(string.ascii_letters + string.digits, 8))}".encode()).hexdigest().lower()
         filename = f"b50_{file_id}.png"
 
-        threading.Thread(target=call_b50, args=(username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
+        threading.Thread(target=call_b50, args=(df_api.username, filename, nickname, icon_id, self._wechat_utils, non_hashed_wxid,)).start()
         self._limited_mode = not self._wechat_utils.interface_test()
         if self._limited_mode:
             return_msg += "\nb50图片获取地址：\n{api_url}/img/b50?id={file_id}\n图片文件随时可能会被删除，还请尽快下载".format(api_url=cfg["urls"]["api_url"], file_id=file_id)

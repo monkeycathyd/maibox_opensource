@@ -33,15 +33,6 @@ class Whitelist(Base):
     def __repr__(self):
         return f"<Whitelist(uid={self.uid})>"
 
-class DfBind(Base):
-    __tablename__ = "df_bind"
-    id = Column(Integer, primary_key=True)
-    wxid = Column(String(255))
-    df_account = Column(String(511))
-    df_password = Column(String(255))
-    def __repr__(self):
-        return f"<DfBind(wxid={self.wxid}, df_account={self.df_account}, df_password={self.df_password})>"
-
 class DfBindNew(Base):
     __tablename__ = "df_bind_new"
     id = Column(Integer, primary_key=True)
@@ -106,58 +97,11 @@ class Dao:
             _logger.error(f"Error during unbind: {e}")
             self._session.rollback()
             return False
-
-    def get_df_account(self, wxid: str) -> Tuple[str, str]:
-        try:
-            df_bind = self._session.query(DfBind).filter(DfBind.wxid == wxid).first()
-            if not df_bind:
-                return None, None
-            return df_bind.df_account, df_bind.df_password
-        except Exception as e:
-            _logger.error(f"Error during get_df_account: {e}")
-            self._session.rollback()
-            raise e
-
-    def get_all_df_accounts(self) -> list[list[str]]:
-        try:
-            df_binds = self._session.query(DfBind).all()
-            return [list(map(str, (df_bind.wxid, df_bind.df_account, df_bind.df_password))) for df_bind in df_binds]
-        except Exception as e:
-            _logger.error(f"Error during get_all_df_accounts: {e}")
-            self._session.rollback()
-            raise e
-
-    def bind_df(self, wxid: str, df_account: str, df_password: str) -> int:
-        try:
-            if self.get_df_account(wxid) != (None, None):
-                return 2
-            df_bind = DfBind(wxid=wxid, df_account=df_account, df_password=df_password)
-            self._session.add(df_bind)
-            self._session.commit()
-            return 0
-        except Exception as e:
-            _logger.error(f"Error during bind_df: {e}")
-            self._session.rollback()
-            raise e
-
-    def unbind_df(self, wxid: str) -> bool:
-        try:
-            if not self.get_df_account(wxid):
-                return False
-            df_bind = self._session.query(DfBind).filter(DfBind.wxid == wxid).first()
-            self._session.delete(df_bind)
-            self._session.commit()
-            return True
-        except Exception as e:
-            _logger.error(f"Error during unbind_df: {e}")
-            self._session.rollback()
-            raise e
-
     def get_df_token(self, wxid: str) -> str:
         try:
             df_bind = self._session.query(DfBindNew).filter(DfBindNew.wxid == wxid).first()
             if not df_bind:
-                return "None"
+                return ""
             return str(df_bind.df_token)
         except Exception as e:
             _logger.error(f"Error during get_df_token: {e}")
@@ -166,8 +110,6 @@ class Dao:
 
     def bind_df_token(self, wxid: str, df_token: str) -> int:
         try:
-            if self.get_df_token(wxid) != "None":
-                return 2
             df_bind = DfBindNew(wxid=wxid, df_token=df_token)
             self._session.add(df_bind)
             self._session.commit()
