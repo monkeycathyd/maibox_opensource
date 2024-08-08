@@ -20,7 +20,7 @@ WORKDIR /app
 
 # 复制前一阶段的安装结果
 COPY --from=build /usr/lib/jvm /usr/lib/jvm
-COPY --from=build /usr/lib/python3.12/site-packages /usr/lib/python3.12/site-packages
+COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=build /app /app
 
 ENTRYPOINT [ "python3", "-m", "maibox" ]
