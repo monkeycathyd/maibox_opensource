@@ -255,7 +255,7 @@ class TextChatHandler:
                     msg += "\nRating：{ra}\n水鱼查分器排名：{rank}".format(ra=results["ra"], rank=results["rank"])
                 else:
                     msg += "\n无法在公开榜单上查找到当前用户，请检查用户隐私设置。"
-                msg += "\n当前榜单更新于{date}".format(date=results["update_date"])
+                msg += "\n\n当前榜单更新于{date}".format(date=results["update_date"])
             else:
                 if not df_username:
                     msg += "水鱼绑定失效，请重新绑定"

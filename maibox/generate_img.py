@@ -13,6 +13,7 @@ from typing import Dict, List
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFile import ImageFile
 
+from maibox.diving_fish_api import DivingFishApi
 from maibox.wechat import WechatInterface
 
 logger = logging.getLogger(__name__)
@@ -765,3 +766,6 @@ def call_user_img_preview(filename, user_data, wechat_utils: WechatInterface = N
         os.remove(f"./img/{filename}")
 
     os.remove(f"./img/{filename}.flag")
+
+def draw_music_info(music_id, df_api: DivingFishApi):
+    pass
