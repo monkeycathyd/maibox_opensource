@@ -90,7 +90,9 @@ def img(img_type):
         return html_template.format(info="图片ID或图片类型错误", script=""), 404
     filename = f"{img_type}_{file_id}.png"
     filepath = os.path.join(os.getcwd(), "img", filename)
-    if os.path.exists(filepath):
+    if os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.privacy")):
+        return html_template.format(info="由于用户隐私设置或其他原因，图片生成失败！", script=""), 404
+    elif os.path.exists(filepath):
         return send_file(filepath)
     elif os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.flag")):
         return html_template.format(info="图片正在生成，请稍后", script="setTimeout(()=>{location.reload()}, 1500)"), 404

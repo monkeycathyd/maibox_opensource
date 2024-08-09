@@ -19,7 +19,7 @@ from PIL import Image
 import maibox
 from maibox import helpers, music_record_generate
 from maibox import config
-from maibox.diving_fish_api import DivingFishApi
+from maibox.diving_fish_api import DivingFishApi, DivingFishRatingRankApi
 from maibox.process_threads import ErrorEMailSender
 from maibox.ai_chat import ai_chat
 from maibox.generate_img import call_b50, call_user_img, call_user_img_preview
@@ -30,6 +30,7 @@ logger = getLogger(__name__)
 
 cfg = config.get_config()
 agreement = cfg["agreement"]["text"].format(place="公众号", negopt="取消关注")
+df_rank = DivingFishRatingRankApi()
 
 handled_msg_id = []
 
@@ -55,7 +56,8 @@ class TextChatHandler:
             'admin': self.handle_admin, #
             '足迹': self.handle_region, #
             'b50': self.handle_b50, #
-            '解析': self.handle_resolve #
+            '解析': self.handle_resolve, #
+            '我有多菜': self.handle_rank_lookup
         }
         self.admin_command_map = {
             'log': self.handle_admin_log,
@@ -239,6 +241,31 @@ class TextChatHandler:
 
     def handle_help(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         return "帮助\n（若无特殊说明，中括号“[]”内文本为提示文本，请勿直接发送中括号）\n直接发送带有登入二维码的图片即可解析并绑定UserID\n发送 “绑定 [你的UserID或二维码内容]” 绑定UserID到微信\n发送 “润 [UserID]” 解小黑屋（已废弃）\n发送 “看我” 查看我的信息\n发送 “解绑” 解绑UserID\n发送 “解析 [二维码内容]” 解析UserID\n发送 “发票 [跑图票倍数2-6之间]” 进行发票（限时解禁）\n发送 “查票” 查询当前跑图票记录\n发送 “足迹” 查看当前出勤地区记录\n发送 “同步” 同步当前乐曲数据到水鱼查分器\n发送 “b50” 生成B50图片\n发送 “加入白名单” 以获取指引\n发送 “使用须知” 以查阅条款内容\n\n当前版本: {version}-{git} ({region})".format(version=version, region=region, git=maibox.git_sha)
+
+    def handle_rank_lookup(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
+        msg = ""
+        df_token = self.dao.get_df_token(wxid)
+        if df_token:
+            df_username = DivingFishApi(df_token).username
+            if df_username and df_rank.update_status():
+                msg += "水鱼账户：{username}".format(username=df_username)
+                results = df_rank.lookup_rating_and_rank(df_username)
+                if results["ra"] > -1 and results["rank"] > -1:
+                    msg += "\nRating：{ra}\n水鱼查分器排名：{rank}".format(ra=results["ra"], rank=results["rank"])
+                else:
+                    msg += "\n无法在公开榜单上查找到当前用户，请检查用户隐私设置。"
+                msg += "\n榜单更新于{date}".format(date=results["update_date"])
+            else:
+                if not df_username:
+                    msg += "水鱼绑定失效，请重新绑定"
+                    self.dao.unbind_df_token(wxid)
+                else:
+                    msg += "正在更新水鱼榜单，请稍后重试"
+        else:
+            msg += "请先绑定水鱼账号，发送“同步 [同步Token]” 以绑定水鱼账号"
+
+        return msg
+
 
     def handle_bind(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)

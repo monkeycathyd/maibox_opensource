@@ -604,12 +604,19 @@ def draw_text_with_spacing(draw: ImageDraw.ImageDraw, pos, text, font, fill_colo
 def call_b50(fish_username, filename, nickname=None, icon_id=None, wechat_utils: WechatInterface = None, non_hashed_wxid: str=""):
     with open(f"img/{filename}.flag", "wb") as f:
         f.write(b"")
-    B50Img: Image = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename).convert("RGB")
-    B50Img.save(f"./img/{filename}", format="png", quality=90)
+    B50Img = generate({'username': fish_username, 'b50': True}, nickname, icon_id, filename)
+    if B50Img:
+        B50Img.save(f"./img/{filename}", format="png", quality=90)
+    else:
+        with open(f"img/{filename}.privacy", "w") as f:
+            f.write("")
 
     if wechat_utils and wechat_utils.interface_test():
-        wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)
-        os.remove(f"./img/{filename}")
+        if B50Img:
+            wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)
+            os.remove(f"./img/{filename}")
+        else:
+            wechat_utils.send_text("由于用户隐私设置或其他水鱼服务器原因，图片生成失败！", non_hashed_wxid)
 
     os.remove(f"./img/{filename}.flag")
 

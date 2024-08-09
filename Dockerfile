@@ -22,7 +22,6 @@ RUN apk update && apk add tzdata && \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
-
 # 复制前一阶段的安装结果
 COPY --from=build /usr/lib/jvm /usr/lib/jvm
 COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
