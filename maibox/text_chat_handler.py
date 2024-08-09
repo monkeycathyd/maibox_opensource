@@ -241,7 +241,7 @@ class TextChatHandler:
         return return_msg
 
     def handle_help(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
-        return "帮助\n（若无特殊说明，中括号“[]”内文本为提示文本，请勿直接发送中括号）\n直接发送带有登入二维码的图片即可解析并绑定UserID\n发送 “绑定 [你的UserID或二维码内容]” 绑定UserID到微信\n发送 “润 [UserID]” 解小黑屋（已废弃）\n发送 “看我” 查看我的信息\n发送 “解绑” 解绑UserID\n发送 “解析 [二维码内容]” 解析UserID\n发送 “发票 [跑图票倍数2-6之间]” 进行发票（限时解禁）\n发送 “查票” 查询当前跑图票记录\n发送 “足迹” 查看当前出勤地区记录\n发送 “同步” 同步当前乐曲数据到水鱼查分器\n发送 “b50” 生成B50图片\n发送 “加入白名单” 以获取指引\n发送 “使用须知” 以查阅条款内容\n\n当前版本: {version}-{git} ({region})".format(version=version, region=region, git=maibox.git_sha)
+        return "帮助\n（若无特殊说明，中括号“[]”内文本为提示文本，请勿直接发送中括号）\n直接发送带有登入二维码的图片即可解析并绑定UserID\n发送 “绑定 [你的UserID或二维码内容]” 绑定UserID到微信\n发送 “润 [UserID]” 解小黑屋（已废弃）\n发送 “看我” 查看我的信息\n发送 “解绑” 解绑UserID\n发送 “解析 [二维码内容]” 解析UserID\n发送 “发票 [跑图票倍数2-6之间]” 进行发票（限时解禁）\n发送 “查票” 查询当前跑图票记录\n发送 “足迹” 查看当前出勤地区记录\n发送 “同步” 同步当前乐曲数据到水鱼查分器\n发送 “b50” 生成B50图片\n发送“我有多菜”查询您的游戏Rating在水鱼数据库中的排名\n发送 “加入白名单” 以获取指引\n发送 “使用须知” 以查阅条款内容\n\n当前版本: {version}-{git} ({region})".format(version=version, region=region, git=maibox.git_sha)
 
     def handle_rank_lookup(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         msg = ""
@@ -419,7 +419,6 @@ class TextChatHandler:
     def handle_sync(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = content.split(" ")
         return_msg = ""
-        flag = False
         uid = self.dao.getUid(wxid)
         if not uid:
             return_msg = "未绑定，发送 “绑定 [你的UserID]” 绑定"
