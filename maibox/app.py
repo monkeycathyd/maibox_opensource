@@ -15,6 +15,7 @@ import maibox.config as config
 from flask import Flask, request, redirect, Response, send_file
 from flask_cors import CORS
 
+from maibox import utils
 from maibox.SocketHttps import HttpClient
 from maibox.process_threads import ErrorEMailSender
 from maibox.text_chat_handler import TextChatHandler
@@ -86,12 +87,12 @@ def index():
 def img(img_type):
     html_template = """<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/><h1 style='text-align: center;color: red;'>{info}</h1><script>{script}</script>"""
     file_id = request.args.get('id', "")
-    if (not re.match(r'^[0-9a-z]+$', file_id)) or (img_type not in safe_img_type):
+    if (not utils.is_hex_string(file_id.lower())) or (img_type not in safe_img_type):
         return html_template.format(info="图片ID或图片类型错误", script=""), 404
     filename = f"{img_type}_{file_id}.png"
     filepath = os.path.join(os.getcwd(), "img", filename)
     if os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.privacy")):
-        return html_template.format(info="由于用户隐私设置或其他原因，图片生成失败！", script=""), 404
+        return html_template.format(info="由于用户隐私设置或其他服务器原因，图片生成失败！", script=""), 404
     elif os.path.exists(filepath):
         return send_file(filepath)
     elif os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.flag")):

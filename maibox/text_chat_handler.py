@@ -17,7 +17,7 @@ import zxing
 from PIL import Image
 
 import maibox
-from maibox import helpers, music_record_generate
+from maibox import helpers, music_record_generate, utils
 from maibox import config
 from maibox.diving_fish_api import DivingFishApi, DivingFishRatingRankApi
 from maibox.process_threads import ErrorEMailSender
@@ -162,6 +162,7 @@ class TextChatHandler:
             case "unsubscribe":
                 try:
                     self.unbind(hashed_wxid)
+                    self.dao.unbind_df_token(hashed_wxid)
                 except:
                     pass
             case _:
@@ -201,7 +202,7 @@ class TextChatHandler:
             return inner_handler()
         else:
             threading.Thread(target=inner_handler, args=(wxid,)).start()
-            return ""
+            return "正在处理请求，请稍后"
 
     def handle_error(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str="", e: BaseException=Exception()):
         traceback_info = traceback.format_exc()
@@ -254,13 +255,13 @@ class TextChatHandler:
                     msg += "\nRating：{ra}\n水鱼查分器排名：{rank}".format(ra=results["ra"], rank=results["rank"])
                 else:
                     msg += "\n无法在公开榜单上查找到当前用户，请检查用户隐私设置。"
-                msg += "\n榜单更新于{date}".format(date=results["update_date"])
+                msg += "\n当前榜单更新于{date}".format(date=results["update_date"])
             else:
                 if not df_username:
                     msg += "水鱼绑定失效，请重新绑定"
                     self.dao.unbind_df_token(wxid)
                 else:
-                    msg += "正在更新水鱼榜单，请稍后重试"
+                    msg += "正在更新水鱼榜单，请稍后再试"
         else:
             msg += "请先绑定水鱼账号，发送“同步 [同步Token]” 以绑定水鱼账号"
 
@@ -428,7 +429,7 @@ class TextChatHandler:
             df_api = DivingFishApi(token)
             if not df_api.username:
                 self.dao.unbind_df_token(wxid)
-                return_msg += "水鱼账户绑定失效，发送 “同步 [导入Token]” 以重新绑定水鱼账户"
+                return_msg += "水鱼账户绑定失效，发送 “同步 [同步Token]” 以重新绑定水鱼账户"
                 return return_msg
             return_msg += "水鱼账户: {username}\n".format(username=df_api.username)
             if len(split_content) == 2 and split_content[1] == "解绑":
@@ -437,13 +438,16 @@ class TextChatHandler:
                 return return_msg
         else:
             if len(content.split(" ")) != 2:
-                return_msg += "发送 “同步 [导入Token]” 以绑定水鱼账户"
+                return_msg += "发送 “同步 [同步Token]” 以绑定水鱼账户"
                 return return_msg
             else:
                 token = content.split(" ")[1]
+                if not utils.is_hex_string(token.lower()):
+                    return_msg += "同步Token格式错误，请检查同步Token是否正确"
+                    return return_msg
                 df_api = DivingFishApi(token)
                 if not df_api.username:
-                    return_msg += "水鱼账户绑定失败，请检查导入Token是否正确"
+                    return_msg += "水鱼账户绑定失败，请检查同步Token是否正确"
                     return return_msg
                 return_msg += "水鱼账户: {username}\n".format(username=df_api.username)
                 self.dao.bind_df_token(wxid, token)
@@ -452,7 +456,7 @@ class TextChatHandler:
         if df_api.update_player_records(detail):
             return_msg += "同步成功"
         else:
-            return_msg += "同步失败，请检查导入Token是否正确"
+            return_msg += "同步失败，请检查同步Token是否正确"
         return return_msg
 
     def handle_b50(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
