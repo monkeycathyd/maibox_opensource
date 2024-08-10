@@ -110,14 +110,16 @@ def send_ticket(uid, ticket_id):
 
     request = HTTPRequest(uid=uid)
     preview = request.Request("GetUserPreviewApiMaimaiChn", login_dict)
-    if not preview["isLogin"]:
+    if preview["isLogin"]:
+        result["is_already_login"] = True
+        result["msg"] = "当前用户已上机，请先下机然后再试一遍"
+        return result
+    else:
         login = request.Request("UserLoginApiMaimaiChn", login_dict)
         if login["returnCode"] != 1:
             result["is_got_qr_code"] = False
             result["msg"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
             return result
-    else:
-        result["is_already_login"] = True
     user_data = request.Request("GetUserDataApiMaimaiChn", login_dict)
     charges = request.Request("GetUserChargeApiMaimaiChn", login_dict)
 
