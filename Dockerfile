@@ -5,7 +5,7 @@ WORKDIR /app
 
 RUN apk update && apk add tzdata && \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone \
+    echo "Asia/Shanghai" > /etc/timezone
 
 # 预先安装系统依赖项
 RUN apk add --no-cache --update openjdk21-jre
