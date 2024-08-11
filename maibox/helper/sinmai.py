@@ -1,4 +1,4 @@
-import platform
+import hashlib
 import random
 import re
 
@@ -7,12 +7,11 @@ from datetime import datetime, timedelta
 
 import requests
 
-from maibox import chime
-from maibox.HTTPRequest import HTTPRequest
-from maibox.config import get_config
-from maibox.constants import ticket_define, region_map
-from maibox.utils import find_chara_levels, find_chara_awakening
-from maibox.game_data_manager import GameDataManager
+from maibox.util.net.HTTPRequest import HTTPRequest
+from maibox.manager.config import get_config
+from maibox import ticket_define, region_map
+from maibox.util.utils import find_chara_levels, find_chara_awakening
+from maibox.manager.game_data import GameDataManager
 
 config = get_config()
 chara_manager = GameDataManager("chara")
@@ -21,6 +20,11 @@ frame_manager = GameDataManager("frame")
 plate_manager = GameDataManager("plate")
 partner_manager = GameDataManager("partner")
 icon_manager = GameDataManager("icon")
+
+def get_user_music_details(uid: int):
+    req = HTTPRequest(uid)
+    data = req.Request("GetUserMusicApiMaimaiChn", {"userId": uid, "nextIndex": 0, "maxCount": 2147483647})
+    return [detail for music in data["userMusicList"] for detail in music["userMusicDetailList"]]
 
 def get_preview(uid, dao):
     result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
@@ -92,8 +96,6 @@ def get_preview_detailed(uid):
         request.Request("UserLogoutApiMaimaiChn", login_dict)
 
     return result
-
-
 
 def send_ticket(uid, ticket_id):
     result = {"is_success": False, "is_got_qr_code": True, "is_already_login": False, "is_already_had_ticket": False, "is_error": False, "user_id": uid, "msg": ""}
@@ -169,7 +171,6 @@ def send_ticket(uid, ticket_id):
         request.Request("UserLogoutApiMaimaiChn", login_dict)
 
     return result
-
 
 def logout(uid, timestamp=0):
     result = {"is_success": False, "is_error": False, "user_id": uid, "msg": ""}
@@ -294,4 +295,22 @@ def get_user_id_by_qr(qr_code):
             "timestamp": datetime.now().strftime("%Y%m%d%H%M%S")[2:],
             "key": ""
         }
-    return chime.get_user_id(qr_code[20:])
+    return get_user_id(qr_code[20:])
+
+def get_user_id(qr_code):
+    GAME_ID = "MAID"
+    AIME_SALT = config["crypto"]["chime_salt"]
+    if len(config["urls"]["chime_hosts"]) > 0:
+        AIME_HOST = random.choice(config["urls"]["chime_hosts"])
+    else:
+        AIME_HOST = "http://ai.sys-all.cn"
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")[2:]
+    chip_id = "A63E-01E{0:08}".format(random.randint(0, 99999999))
+    key = hashlib.sha256(f"{chip_id}{timestamp}{AIME_SALT}".encode()).hexdigest().upper()
+    data_json = f"{{\"chipID\":\"{chip_id}\",\"openGameID\":\"{GAME_ID}\",\"key\":\"{key}\",\"qrCode\":\"{qr_code}\",\"timestamp\":\"{timestamp}\"}}"
+
+    resp = requests.post(f"{AIME_HOST}/wc_aime/api/get_data", data_json, headers={
+        "User-Agent": "WC_AIME_LIB",
+    })
+    return resp.json()

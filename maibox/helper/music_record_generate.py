@@ -3,15 +3,16 @@ from datetime import datetime
 
 from jinja2 import FileSystemLoader, Environment
 
-from maibox import config
-from maibox.HTTPRequest import HTTPRequest
-from maibox.game_data_manager import GameDataManager
+from maibox import root_path
+from maibox.helper import sinmai
+from maibox.manager import config
+from maibox.manager.game_data import GameDataManager
 
 data_manager = GameDataManager("music")
 
 cfg = config.get_config()
 
-template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "templates"))
+template_dir = os.path.abspath(os.path.join(root_path, "templates"))
 
 
 comboStatus_list = ["back", "fc", "fcp", "ap", "app"]
@@ -67,12 +68,8 @@ def get_user_music_details(uid: int):
     :param uid: 用户ID
     :return: 用户音乐详情列表
     """
-    req = HTTPRequest(uid)
-    data = req.Request("GetUserMusicApiMaimaiChn", {"userId": uid, "nextIndex": 0, "maxCount": 2147483647})
-    userMusicDetailList = [detail for music in data["userMusicList"] for detail in music["userMusicDetailList"]]
-
     final_list = []
-    for music in userMusicDetailList:
+    for music in sinmai.get_user_music_details(uid):
         try:
             final_list.append({
                 "title": data_manager.get_resource(int(music["musicId"]))["title"],
@@ -97,12 +94,8 @@ def get_user_music_details_df(uid: int):
     :param uid: 用户ID
     :return: 用户音乐详情列表
     """
-    req = HTTPRequest(uid)
-    data = req.Request("GetUserMusicApiMaimaiChn", {"userId": uid, "nextIndex": 0, "maxCount": 2147483647})
-    userMusicDetailList = [detail for music in data["userMusicList"] for detail in music["userMusicDetailList"]]
-
     final_list = []
-    for music in userMusicDetailList:
+    for music in sinmai.get_user_music_details(uid):
         try:
             if music["level"] < 6:
                 final_list.append({

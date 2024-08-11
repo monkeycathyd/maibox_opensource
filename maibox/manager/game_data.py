@@ -1,9 +1,12 @@
 import json
 import os
 
+from maibox import root_path
+
+
 class GameDataManager:
     def __init__(self, resource_type: str):
-        self.resource = self._load_resource_info(os.path.join(os.path.dirname(__file__), "game_data", f"{resource_type}_list.json"))
+        self.resource = self._load_resource_info(os.path.join(root_path, "game_data", f"{resource_type}_list.json"))
 
     # 加载资源信息的封装函数
     def _load_resource_info(self, path):

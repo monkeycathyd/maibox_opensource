@@ -1,7 +1,5 @@
 # 导入必要的模块和包，用于实现应用程序的功能
 import os
-import platform
-import re
 import traceback
 import uuid
 import json
@@ -11,18 +9,18 @@ import urllib3
 import xmltodict
 
 import maibox
-import maibox.config as config
+import maibox.manager.config as config
 from flask import Flask, request, redirect, Response, send_file
 from flask_cors import CORS
 
-from maibox import utils
-from maibox.SocketHttps import HttpClient
-from maibox.process_threads import ErrorEMailSender
-from maibox.text_chat_handler import TextChatHandler
-from maibox.helpers import logout, send_ticket, dump_user_all, get_preview, query_ticket, get_user_id_by_qr
-from maibox.orm import Dao
-from maibox.music_record_generate import render_html
-from maibox.utils import getLogger, check_wx_auth
+from maibox.util import utils
+from maibox.util.net.SocketHttps import HttpClient
+from maibox.util.process_threads import ErrorEMailSender
+from maibox.helper.text_chat import TextChatHandler
+from maibox.helper.sinmai import logout, send_ticket, dump_user_all, get_preview, query_ticket, get_user_id_by_qr
+from maibox.manager.orm import Dao
+from maibox.helper.music_record_generate import render_html
+from maibox.util.utils import getLogger, check_wx_auth
 
 server_url = "https://maimai-gm.wahlap.com:42081/Maimai2Servlet/"
 server = urllib3.util.parse_url(server_url)

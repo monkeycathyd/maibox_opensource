@@ -13,8 +13,8 @@ from typing import Dict, List
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFile import ImageFile
 
-from maibox.diving_fish_api import DivingFishApi
-from maibox.wechat import WechatInterface
+from maibox.util.diving_fish_api import DivingFishApi
+from maibox.helper.wechat import WechatInterface
 
 logger = logging.getLogger(__name__)
 

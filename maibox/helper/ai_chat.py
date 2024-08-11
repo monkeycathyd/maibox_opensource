@@ -9,8 +9,8 @@ from tencentcloud.common.profile.http_profile import HttpProfile
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
 from tencentcloud.hunyuan.v20230901 import hunyuan_client, models
 
-from maibox.config import get_config
-from maibox.utils import getLogger
+from maibox.manager.config import get_config
+from maibox.util.utils import getLogger
 
 logger = getLogger(__name__)
 cfg = get_config()

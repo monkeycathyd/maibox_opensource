@@ -8,8 +8,8 @@ import hashlib
 import requests
 requests.packages.urllib3.disable_warnings()
 
-from maibox.config import get_config
-from maibox.utils import getLogger
+from maibox.manager.config import get_config
+from maibox.util.utils import getLogger
 
 cfg = get_config()
 logger = getLogger(__name__)

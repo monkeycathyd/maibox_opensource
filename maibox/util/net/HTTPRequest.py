@@ -6,10 +6,10 @@ import random
 
 import urllib3
 
-import maibox.config as config
-from maibox.crypto import CipherAES
-from maibox.SocketHttps import HttpClient
-from maibox.utils import getLogger
+import maibox.manager.config as config
+from maibox.util.net.crypto import CipherAES
+from maibox.util.net.SocketHttps import HttpClient
+from maibox.util.utils import getLogger
 
 cfg = config.get_config()
 

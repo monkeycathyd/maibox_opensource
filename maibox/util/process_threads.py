@@ -7,8 +7,8 @@ from email.mime.text import MIMEText
 import threading
 import time
 
-import maibox.config as config
-from maibox.helpers import get_preview
+import maibox.manager.config as config
+from maibox.helper.sinmai import get_preview
 
 server_config = config.get_config()
 

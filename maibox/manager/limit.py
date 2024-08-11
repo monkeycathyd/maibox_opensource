@@ -1,5 +1,5 @@
-from maibox.orm import Dao
-from maibox.config import get_config
+from maibox.manager.orm import Dao
+from maibox.manager.config import get_config
 
 cfg = get_config()
 

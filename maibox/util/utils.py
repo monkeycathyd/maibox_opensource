@@ -1,7 +1,7 @@
 import hashlib
 import logging
 
-from maibox.config import get_config
+from maibox.manager.config import get_config
 
 cfg = get_config()
 

@@ -1,8 +1,8 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
-from maibox.config import get_config
-from maibox.utils import is_hex_string
+from maibox.manager.config import get_config
+from maibox.util.utils import is_hex_string
 
 if is_hex_string(get_config()["crypto"]["aes_key"]):
     AES_KEY = bytes.fromhex(get_config()["crypto"]["aes_key"])

@@ -1,13 +1,11 @@
 import datetime
 from urllib import parse
-from typing import List, Tuple
-
 
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, InstrumentedAttribute
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-import maibox.config as config
-from maibox.utils import getLogger
+import maibox.manager.config as config
+from maibox.util.utils import getLogger
 
 cfg = config.get_config()
 

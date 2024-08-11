@@ -1,6 +1,5 @@
 import datetime
 import hashlib
-import logging
 import os
 import random
 import re
@@ -9,22 +8,21 @@ import threading
 import time
 import traceback
 import uuid
-from io import BytesIO
 
 import jieba
 import requests
 import zxing
-from PIL import Image
 
 import maibox
-from maibox import helpers, music_record_generate, utils
-from maibox import config
-from maibox.diving_fish_api import DivingFishApi, DivingFishRatingRankApi
-from maibox.process_threads import ErrorEMailSender
-from maibox.ai_chat import ai_chat
-from maibox.generate_img import call_b50, call_user_img, call_user_img_preview
-from maibox.utils import getLogger, get_version_label
-from maibox.wechat import get_utils
+from maibox.util import utils
+from maibox.manager import config
+from maibox.util.diving_fish_api import DivingFishApi, DivingFishRatingRankApi
+from maibox.util.process_threads import ErrorEMailSender
+from maibox.helper.ai_chat import ai_chat
+from maibox.helper.generate_img import call_b50, call_user_img, call_user_img_preview
+from maibox.util.utils import getLogger, get_version_label
+from maibox.helper.wechat import get_utils
+from maibox.helper import sinmai, music_record_generate
 
 logger = getLogger(__name__)
 
@@ -83,17 +81,22 @@ class TextChatHandler:
         decoded_objects = reader.decode(f"temp-{hashed_url}.jpg")
         # 返回解码结果
         if decoded_objects:
-            code = decoded_objects.parsed
+            if isinstance(decoded_objects, list):
+                code = decoded_objects[0].parsed
+            else:
+                code = decoded_objects.parsed
         os.remove(f"temp-{hashed_url}.jpg")
         return code
 
     def process(self, data, version, region):
         global handled_msg_id
         try:
-            if data["MsgId"] in handled_msg_id:
-                return ""
-            handled_msg_id.append(data["MsgId"])
-            handled_msg_id = handled_msg_id[-100:]
+            if "MsgId" in data:
+                if data["MsgId"] in handled_msg_id:
+                    return ""
+                handled_msg_id.append(data["MsgId"])
+                handled_msg_id = handled_msg_id[-25:]
+
             msg = ""
             if data["MsgType"] == "event":
                 msg = self.process_event(data["Event"], data["FromUserName"], version, region)
@@ -134,7 +137,7 @@ class TextChatHandler:
             uid = result["userID"]
             eid = result["errorID"]
             if uid and eid == 0:
-                resp = helpers.get_preview(uid, self.dao)
+                resp = sinmai.get_preview(uid, self.dao)
                 if resp["data"]["userId"] and resp["data"]["userName"]:
                     return_msg = "{userId}: {userName} ({playerRating})\n{result}\n温馨提示：当您取消关注公众号时您的账号绑定关系也会一并清除（不包含白名单记录）".format(
                         userId=resp["data"]["userId"],
@@ -272,7 +275,7 @@ class TextChatHandler:
         split_content = self.final_word_cut(content)
         if len(split_content) == 2:
             if split_content[-1].isdigit():  # 如果是User ID
-                resp = helpers.get_preview(int(split_content[-1]), self.dao)
+                resp = sinmai.get_preview(int(split_content[-1]), self.dao)
                 if resp["data"]["userId"] and resp["data"]["userName"]:
                     return_msg = "{userId}: {userName} ({playerRating})\n{result}\n温馨提示：当您取消关注公众号时您的账号绑定关系也会一并清除（不包含白名单记录）".format(
                         userId=resp["data"]["userId"],
@@ -287,7 +290,7 @@ class TextChatHandler:
                 uid = result["userID"]
                 eid = result["errorID"]
                 if uid and eid == 0:
-                    resp = helpers.get_preview(uid, self.dao)
+                    resp = sinmai.get_preview(uid, self.dao)
                     if resp["data"]["userId"] and resp["data"]["userName"]:
                         return_msg = f"{resp["data"]["userId"]}: {resp["data"]["userName"]} ({resp["data"]["playerRating"]})\n{self.bind(uid, wxid)}\n温馨提示：当您取消关注公众号时您的账号绑定关系也会一并清除（不包含白名单记录）"
                     else:
@@ -305,7 +308,7 @@ class TextChatHandler:
     def handle_logout(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         if len(split_content) == 3:
-            return_msg = helpers.logout(int(split_content[1]), int(split_content[2]))["msg"]
+            return_msg = sinmai.logout(int(split_content[1]), int(split_content[2]))["msg"]
         else:
             blackroom = self.blackroom(wxid, int(split_content[1]))
             if blackroom:
@@ -388,7 +391,7 @@ class TextChatHandler:
                 if isinstance(my_preview, dict):
                     if True or my_preview["is_in_whitelist"]:
                         if split_content[1].isdigit() and 6 >= int(split_content[1]) >= 2:
-                            return_msg = helpers.send_ticket(user_id, int(split_content[1]))["msg"]
+                            return_msg = sinmai.send_ticket(user_id, int(split_content[1]))["msg"]
                         else:
                             return_msg = "倍数不在2-6之间"
                     else:
@@ -400,7 +403,7 @@ class TextChatHandler:
 
     def handle_query_ticket(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         uid = self.dao.getUid(wxid)
-        data = helpers.query_ticket(uid)
+        data = sinmai.query_ticket(uid)
         message = "用户ID: {userId}\n倍券类型数量: {length}\n倍券列表:\n".format(
             userId=data["data"]["userId"],
             length=data["data"]["length"]
@@ -497,7 +500,7 @@ class TextChatHandler:
             else:
                 return_msg = "白名单为空"
         elif split_content[2] == "add":
-            resp = helpers.get_preview(int(split_content[-1]), self.dao)
+            resp = sinmai.get_preview(int(split_content[-1]), self.dao)
             if resp["data"]["userId"] and resp["data"]["userName"]:
                 return_msg = "{userId}: {userName} ({playerRating})\n".format(
                     userId=resp["data"]["userId"],
@@ -509,7 +512,7 @@ class TextChatHandler:
                 else:
                     return_msg += "添加失败"
         elif split_content[2] == "remove":
-            resp = helpers.get_preview(int(split_content[-1]), self.dao)
+            resp = sinmai.get_preview(int(split_content[-1]), self.dao)
             if resp["data"]["userId"] and resp["data"]["userName"]:
                 return_msg = "{userId}: {userName} ({playerRating})\n".format(
                     userId=resp["data"]["userId"],
@@ -551,7 +554,7 @@ class TextChatHandler:
         uid = self.dao.getUid(wxid)
         if uid:
             try:
-                return helpers.logout(uid, timestamp)["msg"]
+                return sinmai.logout(uid, timestamp)["msg"]
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
                 logger.error(f"{traceback.format_exc()}")
@@ -563,7 +566,7 @@ class TextChatHandler:
         uid = self.dao.getUid(wxid)
         if uid:
             try:
-                return helpers.get_preview(uid, self.dao)
+                return sinmai.get_preview(uid, self.dao)
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
                 logger.error(f"{traceback.format_exc()}")
@@ -595,7 +598,7 @@ class TextChatHandler:
 当前版本游玩次数：{current_play_count}"""
         if uid:
             try:
-                data = helpers.get_preview_detailed(uid)
+                data = sinmai.get_preview_detailed(uid)
                 if data["msg"]:
                     if not data["is_got_qr_code"]:
                         return self.preview(wxid)
@@ -681,7 +684,7 @@ class TextChatHandler:
         uid = self.dao.getUid(wxid)
         if uid:
             try:
-                user_region = helpers.get_user_region(uid)["data"]
+                user_region = sinmai.get_user_region(uid)["data"]
                 text = "你目前一共在{length}个地区出过勤: \n".format(length=user_region["length"])
                 for i in range(len(user_region["userRegionList"])):
                     text += "\n{order}. 在 {regionName} 勤过{playCount}次\n首次记录于{created}".format(
@@ -700,7 +703,7 @@ class TextChatHandler:
 
     def getUserIDByQR(self, qr_code):
         if (len(qr_code) == 84) and qr_code.startswith("SGWCMAID") and qr_code[8:20].isdigit() and bool(re.match(r'^[0-9A-F]+$', qr_code[20:])):
-            return helpers.get_user_id_by_qr(qr_code)
+            return sinmai.get_user_id_by_qr(qr_code)
         else:
             return None
 
@@ -708,7 +711,7 @@ class TextChatHandler:
         return_msg = ""
         token = self.dao.get_df_token(wxid)
         uid = self.dao.getUid(wxid)
-        preview = helpers.get_preview(uid, self.dao)
+        preview = sinmai.get_preview(uid, self.dao)
         nickname = preview["data"]["userName"]
         icon_id = preview["data"]["iconId"]
         if token:
