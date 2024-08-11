@@ -1,4 +1,7 @@
-import os
+import os, platform
+
+# os.system("sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories")
+# os.system("apk update && apk upgrade && apk add --no-cache --update openjdk21-jre")
 
 if os.path.exists("logging.log"):
     with open("logging.log", "w") as f:
