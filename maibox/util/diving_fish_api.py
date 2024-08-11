@@ -32,9 +32,13 @@ class DivingFishApi:
 class DivingFishRatingRankApi:
     def __init__(self):
         self.all_rating = {}
+        self.all_rating_len = 0
         self._update_date = datetime.fromtimestamp(0)
         self._update_success = False
         threading.Thread(target=self.update).start()
+
+    def get_update_date(self):
+        return self._update_date
 
     def update(self):
         self._update_success = False
@@ -42,6 +46,7 @@ class DivingFishRatingRankApi:
         if resp.status_code == 200:
             self.all_rating = {item[1]["username"]: {"ra": item[1]["ra"], "rank": item[0]}
                                for item in enumerate(sorted(resp.json(), key=lambda x: x["ra"], reverse=True), start=1)}
+            self.all_rating_len = len(self.all_rating)
             self._update_date = datetime.now()
         self._update_success = True
 
@@ -54,12 +59,14 @@ class DivingFishRatingRankApi:
             return {
                 "ra": self.all_rating[username]["ra"],
                 "rank": self.all_rating[username]["rank"],
+                "length": self.all_rating_len,
                 "update_date": self._update_date.strftime("%Y-%m-%d %H:%M:%S")
             }
         else:
             return {
                 "ra": -1,
                 "rank": -1,
+                "length": self.all_rating_len,
                 "update_date": self._update_date.strftime("%Y-%m-%d %H:%M:%S")
             }
 

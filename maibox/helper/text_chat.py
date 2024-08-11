@@ -249,16 +249,25 @@ class TextChatHandler:
     def handle_rank_lookup(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         msg = ""
         df_token = self.dao.get_df_token(wxid)
+        split_content = self.final_word_cut(content)
+        if len(split_content) == 2 and split_content[1] == "刷新":
+            next_update_date = df_rank.get_update_date() + datetime.timedelta(minutes=30)
+            if next_update_date < datetime.datetime.now():
+                threading.Thread(target=df_rank.update).start()
+                msg += "正在刷新水鱼榜单缓存"
+            else:
+                msg += "30分钟内仅可刷新一次，您可于 {date} 后再刷新".format(date=next_update_date.strftime("%Y-%m-%d %H:%M:%S"))
+            return msg
         if df_token:
             df_username = DivingFishApi(df_token).username
             if df_username and df_rank.update_status():
                 msg += "水鱼账户：{username}".format(username=df_username)
                 results = df_rank.lookup_rating_and_rank(df_username)
                 if results["ra"] > -1 and results["rank"] > -1:
-                    msg += "\nRating：{ra}\n水鱼查分器排名：{rank}".format(ra=results["ra"], rank=results["rank"])
+                    msg += "\nRating：{ra}\n水鱼查分器排名：{rank}/{length}".format(ra=results["ra"], rank=results["rank"], length=results["length"])
                 else:
-                    msg += "\n无法在公开榜单上查找到当前用户，请检查用户隐私设置。"
-                msg += "\n\n当前榜单更新于{date}".format(date=results["update_date"])
+                    msg += "\n无法在公开榜单上查找到当前用户，请检查用户隐私设置或检查水鱼登录用户名和水鱼昵称是否一致。"
+                msg += "\n\n当前榜单缓存更新于{date}\n发送“我有多菜 刷新”以刷新榜单缓存".format(date=results["update_date"])
             else:
                 if not df_username:
                     msg += "水鱼绑定失效，请重新绑定"

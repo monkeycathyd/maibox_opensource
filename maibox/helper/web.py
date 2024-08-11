@@ -90,7 +90,7 @@ def img(img_type):
     filename = f"{img_type}_{file_id}.png"
     filepath = os.path.join(os.getcwd(), "img", filename)
     if os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.privacy")):
-        return html_template.format(info="由于用户隐私设置或其他服务器原因，图片生成失败！", script=""), 404
+        return html_template.format(info="图片生成失败，请检查用户隐私设置或检查水鱼登录用户名和水鱼昵称是否一致。", script=""), 404
     elif os.path.exists(filepath):
         return send_file(filepath)
     elif os.path.exists(os.path.join(os.getcwd(), "img", f"{filename}.flag")):

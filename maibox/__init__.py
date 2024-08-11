@@ -42,7 +42,7 @@ ticket_define = {
         "cost": 5
     }
 }
-region_map = [
+region_map = (
     "北京市",
     "重庆市",
     "上海市",
@@ -75,7 +75,7 @@ region_map = [
     "宁夏回族自治区",
     "新疆维吾尔自治区",
     "西藏自治区"
-]
+)
 
 mai_genres = [
     {

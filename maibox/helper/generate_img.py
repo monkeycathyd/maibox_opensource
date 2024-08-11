@@ -617,7 +617,7 @@ def call_b50(fish_username, filename, nickname=None, icon_id=None, wechat_utils:
             wechat_utils.send_image(f"./img/{filename}", non_hashed_wxid)
             os.remove(f"./img/{filename}")
         else:
-            wechat_utils.send_text("由于用户隐私设置或其他服务器原因，图片生成失败！", non_hashed_wxid)
+            wechat_utils.send_text("图片生成失败，请检查用户隐私设置或检查水鱼登录用户名和水鱼昵称是否一致。", non_hashed_wxid)
 
     os.remove(f"./img/{filename}.flag")
 
