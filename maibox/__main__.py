@@ -4,7 +4,7 @@ import sys
 from gevent import pywsgi
 
 from maibox.manager.config import get_config
-from maibox.app import app
+from maibox.helper.web import app
 from maibox.util.utils import getLogger
 
 server_config = get_config()
