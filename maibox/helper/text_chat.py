@@ -614,11 +614,13 @@ class TextChatHandler:
 累计游玩次数：{play_count}
 当前版本游玩次数：{current_play_count}
 
-头像：{icon_name}
-姓名框：{plate_name}
-称号：{title_name}
-背景：{frame_name}
-搭档：{partner_name}
+当前设置的收藏品信息：
+  头像：{icon_name}
+  背景：{frame_name}
+  姓名框：{plate_name}
+  称号：{title_name}
+  搭档：{partner_name}
+
 旅行伙伴总觉醒数：{chara_awake_sum}☆
 当前设置的旅行伙伴信息: 
 {charater_str}"""
@@ -638,7 +640,7 @@ class TextChatHandler:
                 first_data_ver_tuple = tuple(map(int, data["data"]["firstDataVersion"].split(".")))
 
                 chara_msg = "\n".join([
-                    "{i}. {charaName}  Lv.{charaLevel} {charaAwake}☆".format(
+                    "{i}. {charaName}\n      Lv.{charaLevel} {charaAwake}☆".format(
                         i=i,
                         charaName=charaName,
                         charaLevel=charaLevel,

@@ -9,17 +9,17 @@ if os.path.exists("logging.log"):
 
 git_sha = "undefined"
 git_sha_full = "undefined"
-if os.path.exists("git_sha"):
-    git_sha_full = open("git_sha").read()
+if os.path.exists("./version_info/git_sha"):
+    git_sha_full = open("./version_info/git_sha").read()
     git_sha = git_sha_full[:7]
 
 build_date = "undefined"
-if os.path.exists("build_date"):
-    build_date = open("build_date").read()
+if os.path.exists("./version_info/build_date"):
+    build_date = open("./version_info/build_date").read()
 
 start_time = datetime.now()
 
-
+# constants
 ticket_define = {
     2:{
         "id": 2,

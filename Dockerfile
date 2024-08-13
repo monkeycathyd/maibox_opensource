@@ -19,8 +19,8 @@ WORKDIR /app
 COPY --from=builder / /
 # 复制应用程序代码
 COPY static static
-
 COPY maibox maibox
+COPY version_info version_info
 
 ENTRYPOINT [ "python3", "-m", "maibox" ]
 

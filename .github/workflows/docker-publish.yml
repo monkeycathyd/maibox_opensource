@@ -18,8 +18,8 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          echo ${{ github.sha }} > git_sha
-          date -u > build_date
+          echo ${{ github.sha }} > version_info/git_sha
+          date -u > version_info/build_date
           docker build -t error063/maibox:${{ github.sha }} .
           docker tag error063/maibox:${{ github.sha }} error063/maibox:latest
           docker push error063/maibox:${{ github.sha }}
