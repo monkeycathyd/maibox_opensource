@@ -4,8 +4,11 @@ import os
 import random
 import re
 import hashlib
+from io import BytesIO
 
 import requests
+from PIL import Image
+
 requests.packages.urllib3.disable_warnings()
 
 from maibox.manager.config import get_config
@@ -151,10 +154,7 @@ class WechatUnofficialUtils(WechatInterface):
         url = "https://mp.weixin.qq.com/cgi-bin/loginqrcode?action=getqrcode&param=4300"
         response = self.session.get(url, headers=self.headers, verify=False)
         self.tip = 1
-        with open(self.QRImgPath, 'wb') as f:
-            f.write(response.content)
-            f.close()
-        print('请打开二维码“webWeixinQr.jpg”，使用微信扫描二维码登录')
+        Image.open(BytesIO(response.content)).show()
         while True:
             url = "https://mp.weixin.qq.com/cgi-bin/loginqrcode?action=ask&token=&lang=zh_CN&f=json&ajax=1"
             response = self.session.get(url, headers=self.headers, verify=False)
@@ -173,16 +173,14 @@ class WechatUnofficialUtils(WechatInterface):
         _json = json.loads(response.text)
         redirect_url = _json["redirect_url"]
         self.token = redirect_url[redirect_url.rfind("=") + 1:len(redirect_url)]
-        with open("cookies.json", "w") as f:
-            cookies = {
-                "account": {
-                    "username": self.username,
-                    "password": self.password
-                },
-                "cookies": self.session.cookies.get_dict(),
-                "token": self.token
-            }
-            f.write(json.dumps(cookies, ensure_ascii=False))
+        print(f"unofficial_cookies_json: '{json.dumps({
+            "account": {
+                "username": self.username,
+                "password": self.password
+            },
+            "cookies": self.session.cookies.get_dict(),
+            "token": self.token
+        }, ensure_ascii=False)}'")
 
         self._init_self_information()
 

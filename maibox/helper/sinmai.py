@@ -39,12 +39,13 @@ def get_preview(uid, dao):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": int(time.time()),
+        "dateTime": 114514,
         "isContinue": False,
         "genericFlag": 0
     }
     request = HTTPRequest(uid=uid)
     preview = request.Request("GetUserPreviewApiMaimaiChn", login_dict)
+    preview["iconName"] = icon_manager.get_resource(preview["iconId"])
     result["data"] = preview
     result["is_success"] = True
     result["is_error"] = False
@@ -59,7 +60,7 @@ def get_preview_detailed(uid):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": int(time.time()),
+        "dateTime": 114514,
         "isContinue": False,
         "genericFlag": 0,
         "nextIndex":0,
@@ -89,11 +90,78 @@ def get_preview_detailed(uid):
     player_info["titleName"] = title_manager.get_resource(user_data["userData"]["titleId"])["title"]
     player_info["titleRare"] = title_manager.get_resource(user_data["userData"]["titleId"])["rareType"]
     player_info["banState"] = user_data["banState"]
+    player_info["loginState"] = preview["isLogin"]
 
     result["data"] = player_info
 
     if not preview["isLogin"]:
         request.Request("UserLogoutApiMaimaiChn", login_dict)
+
+    return result
+
+def send_ticket_new(uid, ticket_id):
+    result = {"is_success": False, "is_already_had_ticket": False, "is_error": False, "user_id":uid, "msg": ""}
+    login_dict = {
+        "userId": uid,
+        "accessCode": "",
+        "regionId": config["arcade_info"]["region_id"],
+        "placeId": config["arcade_info"]["place_id"],
+        "clientId": config["arcade_info"]["key_chip"],
+        "dateTime": 114514,
+        "isContinue": False,
+        "genericFlag": 0
+    }
+
+    request = HTTPRequest(uid=uid)
+    preview = request.Request("GetUserPreviewApiMaimaiChn", login_dict)
+    user_rating = preview["playerRating"]
+    resp = request.Request("GetUserRegionApiMaimaiChn", {"userId": uid})
+    play_count = 0
+    for i in resp["userRegionList"]:
+        play_count += i["playCount"]
+
+    charges = request.Request("GetUserChargeApiMaimaiChn", login_dict)
+    had_ticket = False
+    if charges["userChargeList"]:
+        for charge in charges["userChargeList"]:
+            if charge["stock"] > 0 and charge["chargeId"] == int(ticket_id):
+                had_ticket = True
+                result["is_already_had_ticket"] = True
+                result["msg"] = "无法重复发放跑图票"
+                break
+
+    if not had_ticket:
+        date_time = datetime.now()
+        timestamp_str = date_time.strftime('%Y-%m-%d %H:%M:%S.0')
+        expire_timestamp = (date_time + timedelta(days=90)).strftime('%Y-%m-%d 04:00:00')
+        ticket_dict = {
+            "userId": uid,
+            "userChargelog": {
+                "chargeId": ticket_id,
+                "price": ticket_define[ticket_id]["cost"],
+                "purchaseDate": timestamp_str,
+                "playCount": play_count,
+                "playerRating": user_rating,
+                "placeId": config["arcade_info"]["place_id"],
+                "regionId": config["arcade_info"]["region_id"],
+                "clientId": config["arcade_info"]["key_chip"],
+            },
+            "userCharge": {
+                "chargeId": ticket_id,
+                "stock": 1,
+                "purchaseDate": timestamp_str,
+                "validDate": expire_timestamp
+            }
+        }
+
+        try:
+            request.Request("UpsertUserChargelogApiMaimaiChn", ticket_dict)
+            result["is_success"] = True
+            result["msg"] = "成功"
+        except Exception as e:
+            print(e.with_traceback(None))
+            result["is_error"] = True
+            result["msg"] = f"未知错误：{e.with_traceback(None)}"
 
     return result
 
@@ -105,7 +173,7 @@ def send_ticket(uid, ticket_id):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": int(time.time()),
+        "dateTime": 114514,
         "isContinue": False,
         "genericFlag": 0
     }

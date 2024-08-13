@@ -338,7 +338,20 @@ class TextChatHandler:
             last_rom_ver_tuple = tuple(map(int, my_preview["data"]["lastRomVersion"].split(".")))
             last_data_ver_tuple = tuple(map(int, my_preview["data"]["lastDataVersion"].split(".")))
 
-            return_msg = "{warning}微信用户ID（已哈希化）: {wxid}\n用户ID: {user_id}\n昵称: {user_name}\n游戏Rating: {player_rating}\n上次游戏版本：Ver.CN{rom_version}{data_char}\n封禁状态: {ban_state}\n\n请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息（无需再次发送二维码图片）".format(
+            msg_fmt = """
+{warning}
+微信用户ID（已哈希化）: {wxid}
+用户ID: {user_id}
+昵称: {user_name}
+游戏Rating: {player_rating}
+上次游戏版本：Ver.CN{rom_version}{data_char}
+封禁状态: {ban_state}
+你当前{login_status}
+旅行伙伴总觉醒数：{chara_awake_sum}☆
+
+请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮以获取详细信息（无需再次发送二维码图片）"""
+
+            return_msg = msg_fmt.format(
                 warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[1] % 5 != 0) or (last_rom_ver_tuple[0] != 1 and last_rom_ver_tuple[2] != 0) else "",
                 wxid=wxid,
                 user_id=my_preview["data"]["userId"],
@@ -347,7 +360,9 @@ class TextChatHandler:
                 rom_version=".".join(my_preview["data"]["lastRomVersion"].split(".")[0:2]),
                 data_char="-{char}".format(char=last_game_data_character),
                 ban_state=["正常", "警告", "封禁"][my_preview["data"]["banState"]],
-                # login_status="正在上机" if my_preview["data"]["isLogin"] else "未上机",
+                login_status="正在上机" if my_preview["data"]["isLogin"] else "未上机",
+                chara_awake_sum=my_preview["data"]["totalAwake"]
+
                 # whitelist_status="你当前是受邀用户\n" if my_preview["is_in_whitelist"] else ""
             ).strip()
 
@@ -592,19 +607,21 @@ class TextChatHandler:
 游戏Rating: {player_rating}
 上次游戏版本：Ver.CN{rom_version}{data_char}
 封禁状态: {ban_state}
+你当前{login_status}
+最后一次登录时间：{last_login_date}
+入坑日期：{first_play_date}（{play_day_count}天）
+入坑版本：Ver.CN{first_rom_version}{first_data_char}
+累计游玩次数：{play_count}
+当前版本游玩次数：{current_play_count}
+
 头像：{icon_name}
 姓名框：{plate_name}
 称号：{title_name}
 背景：{frame_name}
 搭档：{partner_name}
-旅行伙伴: {charater_str}
-旅行伙伴等级: {charater_level_str}
-旅行伙伴觉醒: {charater_awakening_str}
-最后一次登录时间：{last_login_date}
-入坑天数：{play_day_count}天（{first_play_date}）
-入坑版本：Ver.CN{first_rom_version}{first_data_char}
-累计游玩次数：{play_count}
-当前版本游玩次数：{current_play_count}"""
+旅行伙伴总觉醒数：{chara_awake_sum}☆
+当前设置的旅行伙伴信息: 
+{charater_str}"""
         if uid:
             try:
                 data = sinmai.get_preview_detailed(uid)
@@ -619,6 +636,19 @@ class TextChatHandler:
                 first_game_data_character = get_version_label(int(data["data"]["firstDataVersion"].split(".")[-1]))
                 first_rom_ver_tuple = tuple(map(int, data["data"]["firstRomVersion"].split(".")))
                 first_data_ver_tuple = tuple(map(int, data["data"]["firstDataVersion"].split(".")))
+
+                chara_msg = "\n".join([
+                    "{i}. {charaName}  Lv.{charaLevel} {charaAwake}☆".format(
+                        i=i,
+                        charaName=charaName,
+                        charaLevel=charaLevel,
+                        charaAwake=charaAwake
+                    )
+                    for i, (charaName, charaLevel, charaAwake) in enumerate(
+                        zip(data["data"]["charaName"], data["data"]["charaLevel"], data["data"]["charaAwakening"]), start=1
+                    )
+                ])
+
 
                 text = template.format(
                     warning="警告！用户游戏版本异常\n" if (last_data_ver_tuple[0] != 1 and last_data_ver_tuple[
@@ -635,16 +665,16 @@ class TextChatHandler:
                     title_name=data["data"]["titleName"],
                     frame_name=data["data"]["frameName"],
                     partner_name=data["data"]["partnerName"],
-                    charater_str=" ".join(data["data"]["charaName"]),
-                    charater_level_str=" ".join(map(str, data["data"]["charaLevel"])),
-                    charater_awakening_str=" ".join(map(str, data["data"]["charaAwakening"])),
+                    charater_str=chara_msg,
                     last_login_date=data["data"]["lastLoginDate"],
                     play_day_count=(datetime.datetime.now() - datetime.datetime.strptime(data["data"]["firstPlayDate"], "%Y-%m-%d %H:%M:%S")).days,
                     first_play_date=data["data"]["firstPlayDate"],
                     first_rom_version=".".join(data["data"]["firstRomVersion"].split(".")[0:2]),
                     first_data_char="-{char}".format(char=first_game_data_character),
                     play_count=data["data"]["playCount"],
-                    current_play_count=data["data"]["currentPlayCount"]
+                    current_play_count=data["data"]["currentPlayCount"],
+                    login_status="正在上机" if data["data"]["loginState"] else "未上机",
+                    chara_awake_sum=data["data"]["totalAwake"]
                 ).strip()
 
                 file_id = hashlib.md5(
