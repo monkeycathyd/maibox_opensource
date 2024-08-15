@@ -50,29 +50,15 @@ class AIProviders:
             clientProfile.httpProfile = httpProfile
             client = hunyuan_client.HunyuanClient(tencent_cred, "ap-beijing", clientProfile)
 
-            prompts = [
-                {'role': 'system', 'content': setting_prompt},
-            ] + prompts
-            prompts_new = [{
-                "Role": prompt["role"],
-                "Content": prompt["content"]
-            } for prompt in prompts]
-
-            logger.info("Tencent AI: " + str(prompts_new))
-
             req = models.ChatCompletionsRequest()
             params = {
                 "Model": "hunyuan-lite",
-                "Messages": [
-                    {
-                        "Role": "system",
-                        "Content": setting_prompt
-                    },
-                    {
-                        "Role": "user",
-                        "Content": prompts_new
-                    }
-                ]
+                "Messages": [{
+                    "Role": prompt["role"],
+                    "Content": prompt["content"]
+                } for prompt in ([
+                  {'Role': 'system', 'Content': setting_prompt},
+              ] + prompts)]
             }
             req.from_json_string(json.dumps(params))
             resp = client.ChatCompletions(req)
@@ -86,13 +72,11 @@ class AIProviders:
         if not ali_client:
             logger.warning("Aliyun AI key not set")
             return "抱歉，我暂时无法回答这个问题"
-        prompts = [
-            {'role': 'system', 'content': setting_prompt},
-        ] + prompts
-        logger.info("Aliyun AI: " + str(prompts))
         completion = ali_client.chat.completions.create(
             model="qwen-turbo",
-            messages=prompts,
+            messages=([
+                         {'role': 'system', 'content': setting_prompt},
+                     ] + prompts),
             temperature=0.8,
             top_p=0.8
         )
@@ -108,6 +92,8 @@ def ai_chat(prompt, user_id="1234"):
         provider = random.choices(list(providers_weights.keys()), weights=list(providers_weights.values()), k=1)[0]
         if user_id not in user_prompt_records:
             user_prompt_records[user_id] = []
+        logger.info(f"Using {provider.upper()} AI")
+        logger.info(f"Prompt from {user_id}: {provider}")
         user_prompt_records[user_id].append({
             "role": "user",
             "content": prompt

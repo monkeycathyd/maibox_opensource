@@ -21,6 +21,8 @@ plate_manager = GameDataManager("plate")
 partner_manager = GameDataManager("partner")
 icon_manager = GameDataManager("icon")
 
+dateTime_constant = 114514
+
 def get_user_music_details(uid: int):
     req = HTTPRequest(uid)
     data = req.Request("GetUserMusicApiMaimaiChn", {"userId": uid, "nextIndex": 0, "maxCount": 2147483647})
@@ -39,7 +41,7 @@ def get_preview(uid, dao):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": 114514,
+        "dateTime": dateTime_constant,
         "isContinue": False,
         "genericFlag": 0
     }
@@ -60,7 +62,7 @@ def get_preview_detailed(uid):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": 114514,
+        "dateTime": dateTime_constant,
         "isContinue": False,
         "genericFlag": 0,
         "nextIndex":0,
@@ -107,7 +109,7 @@ def send_ticket_new(uid, ticket_id):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": 114514,
+        "dateTime": dateTime_constant,
         "isContinue": False,
         "genericFlag": 0
     }
@@ -173,7 +175,7 @@ def send_ticket(uid, ticket_id):
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": 114514,
+        "dateTime": dateTime_constant,
         "isContinue": False,
         "genericFlag": 0
     }
@@ -240,7 +242,7 @@ def send_ticket(uid, ticket_id):
 
     return result
 
-def logout(uid, timestamp=0):
+def logout(uid, timestamp=dateTime_constant):
     result = {"is_success": False, "is_error": False, "user_id": uid, "msg": ""}
     login_dict = {
         "userId": uid,
@@ -270,15 +272,13 @@ def dump_user_all(uid):
     available_attrs = ["UserData","UserExtend","UserOption","UserCharacter","UserMap","UserLoginBonus","UserRating","UserItem","UserMusic","UserCourse","UserCharge"]
     data = {}
 
-    login_time = int(time.time())
-
     login_dict = {
         "userId": uid,
         "accessCode": "",
         "regionId": config["arcade_info"]["region_id"],
         "placeId": config["arcade_info"]["place_id"],
         "clientId": config["arcade_info"]["key_chip"],
-        "dateTime": login_time,
+        "dateTime": dateTime_constant,
         "isContinue": False,
         "genericFlag": 0
     }
@@ -376,6 +376,7 @@ def get_user_id(qr_code):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")[2:]
     chip_id = "A63E-01E{0:08}".format(random.randint(0, 99999999))
     key = hashlib.sha256(f"{chip_id}{timestamp}{AIME_SALT}".encode()).hexdigest().upper()
+    # 别问我为什么用字符串拼接不用json.dumps()，要问去问SBGA
     data_json = f"{{\"chipID\":\"{chip_id}\",\"openGameID\":\"{GAME_ID}\",\"key\":\"{key}\",\"qrCode\":\"{qr_code}\",\"timestamp\":\"{timestamp}\"}}"
 
     resp = requests.post(f"{AIME_HOST}/wc_aime/api/get_data", data_json, headers={

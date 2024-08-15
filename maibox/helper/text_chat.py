@@ -213,7 +213,7 @@ class TextChatHandler:
         logger.error(f"Error {err_uuid}: {e}\n{traceback_info}")
 
         if "incorrect header check" in str(e):
-            return_msg = "你wahleak服务器又在胡言乱语力（\n要不再试试？"
+            return_msg = "服务器返回数据异常，可能会导致用户未登出，可发送“润 114514”以手动登出"
         else:
             ErrorEMailSender(f"发生错误: {err_uuid}", f"{e}\n{traceback_info}").start()
 
