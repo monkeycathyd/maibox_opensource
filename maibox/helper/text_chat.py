@@ -15,7 +15,7 @@ import zxing
 
 import maibox
 from maibox.util import utils
-from maibox.manager import config
+from maibox.manager import config, usage_count
 from maibox.util.diving_fish_api import DivingFishApi, DivingFishRatingRankApi
 from maibox.util.process_threads import ErrorEMailSender
 from maibox.helper.ai_chat import ai_chat
@@ -33,6 +33,7 @@ df_rank = DivingFishRatingRankApi()
 handled_msg_id = []
 
 reader = zxing.BarCodeReader()
+counter = usage_count.UsageCount()
 
 class TextChatHandler:
     def __init__(self, dao):
@@ -88,14 +89,18 @@ class TextChatHandler:
         os.remove(f"temp-{hashed_url}.jpg")
         return code
 
-    def process(self, data, version, region):
-        global handled_msg_id
+    def process(self, data: dict, version, region):
+        global handled_msg_id, handled_count, handled_user_list
+        hashed_wxid = hashlib.md5(data.get("FromUserName", "null").encode()).hexdigest().lower()
+
         try:
             if "MsgId" in data:
                 if data["MsgId"] in handled_msg_id:
                     return ""
                 handled_msg_id.append(data["MsgId"])
                 handled_msg_id = handled_msg_id[-25:]
+
+            counter.add(hashed_wxid)
 
             msg = ""
             if data["MsgType"] == "event":
@@ -105,7 +110,6 @@ class TextChatHandler:
             elif data["MsgType"] == "text":
                 msg = self.process_chat(data["Content"], data["FromUserName"], version, region)
         except Exception as e:
-            hashed_wxid = hashlib.md5(data["FromUserName"].encode()).hexdigest().lower()
             msg = self.handle_error(hashed_wxid, data["Content"], version, region, data["FromUserName"], e)
 
         return_msg = {
@@ -156,7 +160,7 @@ class TextChatHandler:
         return_msg = ""
         match event:
             case "subscribe":
-                return_msg = "当前版本: {version}-{git} ({region})\n欢迎关注，{agreement}\n发送 “帮助” 以获取使用指引。".format(
+                return_msg = "当前版本: {version}-{git} (构建于 {region})\n欢迎关注，{agreement}\n发送 “帮助” 以获取使用指引。".format(
                     version=version,
                     region=region,
                     agreement=agreement,
@@ -240,11 +244,27 @@ class TextChatHandler:
         return return_msg
 
     def handle_version(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
-        return_msg = "当前版本: {version}-{git} ({region})".format(version=version, region=region, git=maibox.git_sha)
-        return return_msg
+        user_count, handled_count, my_count = counter.get(wxid)
+        return_msg = """
+当前版本: {version} Git提交 {git} 镜像构建于 {build_date}
+{limit_mode_warning}
+当前服务自 {start_date} 启动
+已处理来自 {user_count} 位用户的共计 {handled_count} 次请求
+其中来自于您的共计 {my_count} 次
+""".format(
+            version=version,
+            build_date=region,
+            git=maibox.git_sha,
+            limit_mode_warning="！！当前发信功能受限，部分操作响应速率可能会大幅降低！！\n" if self._limited_mode else "",
+            start_date=maibox.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            user_count=user_count,
+            handled_count=handled_count,
+            my_count=my_count
+        )
+        return return_msg.strip()
 
     def handle_help(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
-        return "帮助\n（若无特殊说明，中括号“[]”内文本为提示文本，请勿直接发送中括号）\n直接发送带有登入二维码的图片即可解析并绑定UserID\n发送 “绑定 [你的UserID或二维码内容]” 绑定UserID到微信\n发送 “润 [UserID]” 解小黑屋（已废弃）\n发送 “看我” 查看我的信息\n发送 “解绑” 解绑UserID\n发送 “解析 [二维码内容]” 解析UserID\n发送 “发票 [跑图票倍数2-6之间]” 进行发票（限时解禁）\n发送 “查票” 查询当前跑图票记录\n发送 “足迹” 查看当前出勤地区记录\n发送 “同步” 同步当前乐曲数据到水鱼查分器\n发送 “b50” 生成B50图片\n发送“我有多菜”查询您的游戏Rating在水鱼数据库中的排名\n发送 “加入白名单” 以获取指引\n发送 “使用须知” 以查阅条款内容\n\n当前版本: {version}-{git} ({region})".format(version=version, region=region, git=maibox.git_sha)
+        return "请参见公众号置顶文章"
 
     def handle_rank_lookup(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         msg = ""

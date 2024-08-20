@@ -160,7 +160,6 @@ class WechatUnofficialUtils(WechatInterface):
             response = self.session.get(url, headers=self.headers, verify=False)
             _json = json.loads(response.text)
             if _json["status"] == 1:
-                os.remove(self.QRImgPath)
                 break
             time.sleep(1)
         url = "https://mp.weixin.qq.com/cgi-bin/bizlogin?action=login"
