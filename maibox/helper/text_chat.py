@@ -90,7 +90,7 @@ class TextChatHandler:
         return code
 
     def process(self, data: dict, version, region):
-        global handled_msg_id, handled_count, handled_user_list
+        global handled_msg_id
         hashed_wxid = hashlib.md5(data.get("FromUserName", "null").encode()).hexdigest().lower()
 
         try:
@@ -101,14 +101,16 @@ class TextChatHandler:
                 handled_msg_id = handled_msg_id[-25:]
 
             counter.add(hashed_wxid)
-
             msg = ""
-            if data["MsgType"] == "event":
-                msg = self.process_event(data["Event"], data["FromUserName"], version, region)
-            elif data["MsgType"] == "image":
-                msg = self.process_img(data["PicUrl"], data["FromUserName"])
-            elif data["MsgType"] == "text":
-                msg = self.process_chat(data["Content"], data["FromUserName"], version, region)
+            if 4 <= int(time.strftime("%H")) < 7 and data["MsgType"] != "event":
+                msg = "服务器维护期间暂停对外服务，请于北京时间7:00后再试"
+            else:
+                if data["MsgType"] == "event":
+                    msg = self.process_event(data["Event"], data["FromUserName"], version, region)
+                elif data["MsgType"] == "image":
+                    msg = self.process_img(data["PicUrl"], data["FromUserName"])
+                elif data["MsgType"] == "text":
+                    msg = self.process_chat(data["Content"], data["FromUserName"], version, region)
         except Exception as e:
             msg = self.handle_error(hashed_wxid, data["Content"], version, region, data["FromUserName"], e)
 
@@ -134,13 +136,11 @@ class TextChatHandler:
         return_msg = ""
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
         qr_content = self.decode_qr_from_url(url)
-        if 4 <= int(time.strftime("%H")) < 7:
-            return "服务器维护期间暂停对外服务，请于北京时间7:00后再试"
         if qr_content and ((len(qr_content) == 84) and qr_content.startswith("SGWCMAID") and qr_content[8:20].isdigit() and bool(re.match(r'^[0-9A-F]+$', qr_content[20:]))):
             result = self.getUserIDByQR(qr_content)
             uid = result["userID"]
             eid = result["errorID"]
-            if uid and eid == 0:
+            if uid > 0 and eid == 0:
                 resp = sinmai.get_preview(uid, self.dao)
                 if resp["data"]["userId"] and resp["data"]["userName"]:
                     return_msg = "{userId}: {userName} ({playerRating})\n{result}\n温馨提示：当您取消关注公众号时您的账号绑定关系也会一并清除（不包含白名单记录）".format(
@@ -178,8 +178,6 @@ class TextChatHandler:
         return return_msg
 
     def process_chat(self,content, wxid, version="", region=""):
-        if 4 <= int(time.strftime("%H")) < 7:
-            return "服务器维护期间暂停对外服务，请于北京时间 7:00 后再试"
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
         def inner_handler(inner_wxid=""):
             return_msg = ""
@@ -245,12 +243,16 @@ class TextChatHandler:
 
     def handle_version(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         user_count, handled_count, my_count = counter.get(wxid)
+        server_request_count, server_request_failed_count, server_request_compressed_skip_count, server_request_average_delay = maibox.network_count.get_network_status()
+        logger.info("{} {} {} {}".format(server_request_count, server_request_failed_count, server_request_compressed_skip_count, server_request_average_delay))
         return_msg = """
-当前版本: {version} Git提交 {git} 镜像构建于 {build_date}
+当前版本 {version}
+Git提交 {git}
+基础镜像构建于 {build_date}
 {limit_mode_warning}
 当前服务自 {start_date} 启动
-已处理来自 {user_count} 位用户的共计 {handled_count} 次请求
-其中来自于您的共计 {my_count} 次
+已处理来自 {user_count} 位用户的共计 {handled_count} 次请求，其中来自于您的共计 {my_count} 次
+已向标题服务器反向代理发起 {server_request_count} 次请求，请求失败率为 {server_request_failed_count}%，zlib压缩跳过率为 {server_request_compressed_skip_count}%，平均响应延迟为 {server_request_average_delay} ms
 """.format(
             version=version,
             build_date=region,
@@ -259,7 +261,11 @@ class TextChatHandler:
             start_date=maibox.start_time.strftime("%Y-%m-%d %H:%M:%S"),
             user_count=user_count,
             handled_count=handled_count,
-            my_count=my_count
+            my_count=my_count,
+            server_request_count=server_request_count,
+            server_request_failed_count=f"{(server_request_failed_count/server_request_count)*100:.2f}",
+            server_request_compressed_skip_count=f"{(server_request_compressed_skip_count/server_request_count)*100:.2f}",
+            server_request_average_delay=f"{server_request_average_delay:.2f}"
         )
         return return_msg.strip()
 

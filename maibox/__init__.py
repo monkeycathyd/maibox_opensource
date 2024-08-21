@@ -1,7 +1,9 @@
 import os
 from datetime import datetime
+from maibox.manager.usage_count import NetworkCount
 
 root_path = os.path.dirname(__file__)
+network_count = NetworkCount()
 
 if os.path.exists("logging.log"):
     with open("logging.log", "w") as f:

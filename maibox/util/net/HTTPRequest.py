@@ -10,6 +10,7 @@ import maibox.manager.config as config
 from maibox.util.net.crypto import CipherAES
 from maibox.util.net.SocketHttps import HttpClient
 from maibox.util.utils import getLogger
+from maibox import network_count
 
 cfg = config.get_config()
 
@@ -33,6 +34,7 @@ class HTTPRequest:
         return hashlib.md5(str.encode(param + HTTPRequest()._obfuscate_param)).hexdigest()
 
     def Request(self, api: str, datas: dict):
+        network_count.add_request_count()
         if not (api.endswith("MaimaiChn")):
             api += "MaimaiChn"
         unobfuscated_api = api
@@ -60,18 +62,24 @@ class HTTPRequest:
                 continue
             if len(result["body"]) > 0:
                 break
-
+        end = int(round(time.time() * 1000)) - ctime
+        network_count.update_average_delay(end)
         if result["status_code"] != 200:
             raise Exception(f"Request Failed with status code {result['status_code']}")
         if not (len(result["body"]) > 0):
             raise Exception("Max Retry Failed")
 
-        end = int(round(time.time() * 1000)) - ctime
         logger.info(f"{unobfuscated_api} was response in {end}ms:\nStatus Code: {result['status_code']}\nHeaders: {result['headers']}")
         try:
-            final_content = json.loads(CipherAES.decrypt(zlib.decompress(result["body"])))
+            try:
+                decompressed_data = zlib.decompress(result["body"])
+            except zlib.error:
+                network_count.add_zlib_compress_skip_count()
+                decompressed_data = result["body"]
+            final_content = json.loads(CipherAES.decrypt(decompressed_data))
             logger.info(f"{unobfuscated_api} Response data: {final_content}")
             return final_content
         except Exception as e:
+            network_count.add_failed_request_count()
             logger.error(f"{unobfuscated_api} was error in decoding with\n{result["body"]}")
             raise e

@@ -9,4 +9,28 @@ class UsageCount:
         my_count = 0
         if wxid is not None:
             my_count = self.handled_user_count.get(wxid, 0)
-        return len(self.handled_user_count.keys()), sum(self.handled_user_count.values()), my_count
+        return len(self.handled_user_count.keys())-1, sum(self.handled_user_count.values()), my_count
+
+class NetworkCount:
+    average_delay = 0
+    request_failed_count = 0
+    request_count= 0
+    zlib_compress_skip_count = 0
+
+    def update_average_delay(self, delay: int):
+        if self.request_count == 0:
+            self.average_delay = delay
+        else:
+            self.average_delay = (self.average_delay * self.request_count + delay) / (self.request_count + 1)
+
+    def add_request_count(self):
+        self.request_count += 1
+
+    def add_zlib_compress_skip_count(self):
+        self.zlib_compress_skip_count += 1
+
+    def add_request_failed_count(self):
+        self.request_failed_count += 1
+
+    def get_network_status(self):
+        return self.request_count, self.request_failed_count, self.zlib_compress_skip_count, self.average_delay
