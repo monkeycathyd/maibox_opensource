@@ -135,10 +135,14 @@ class WechatUnofficialUtils(WechatInterface):
         self.password = ""
 
     @staticmethod
-    def login():
+    def login(username="", password=""):
         self = WechatUnofficialUtils()
-        self.username = input("请输入您的公众号微信号或邮箱:")
-        self.password = input("请输入您的公众号密码:")
+        if username and password:
+            self.username = username
+            self.password = password
+        else:
+            self.username = input("请输入您的公众号微信号或邮箱:")
+            self.password = input("请输入您的公众号密码:")
         url = "https://mp.weixin.qq.com/cgi-bin/bizlogin?action=startlogin"
         params = {
             'username': self.username,
