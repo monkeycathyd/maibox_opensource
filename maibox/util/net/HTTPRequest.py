@@ -65,8 +65,10 @@ class HTTPRequest:
         end = int(round(time.time() * 1000)) - ctime
         network_count.update_average_delay(end)
         if result["status_code"] != 200:
+            network_count.add_failed_request_count()
             raise Exception(f"Request Failed with status code {result['status_code']}")
         if not (len(result["body"]) > 0):
+            network_count.add_failed_request_count()
             raise Exception("Max Retry Failed")
 
         logger.info(f"{unobfuscated_api} was response in {end}ms:\nStatus Code: {result['status_code']}\nHeaders: {result['headers']}")

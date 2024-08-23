@@ -26,7 +26,7 @@ database:
   host: localhost # 数据库地址
   password: password # 数据库密码
   port: 3306 # 数据库端口
-  type: mysql # 数据库类型（仅支持mysql）
+  type: sqlite # 数据库类型（支持mysql和sqlite）
   user: root # 数据库用户名
 email:
   enable: true # 是否启用邮件通知

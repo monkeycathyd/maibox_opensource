@@ -1,4 +1,5 @@
 ./server_config.*
+./usage_config.*
 test.py
 ./img/
 ./assets/
@@ -7,3 +8,4 @@ test.py
 *.log
 /.vscode/
 /.idea/
+*.db

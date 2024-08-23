@@ -3,7 +3,9 @@
 ./.idea/*
 *.pyc
 server_config.*
+usage_config.*
 test.py
 *.xml
 *.log
 /.vscode/
+*.db

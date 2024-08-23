@@ -52,7 +52,7 @@ def auth(func):
 def server_maintenance_check(func):
     def wrapper(*args, **kwargs):
         if 4 <= int(time.strftime("%H")) < 7:
-            return {"is_success": False, "is_error": True, "msg": "服务器维护期间暂停对外服务，请于北京时间 7:00 后再试"}, 418
+            return {"is_success": False, "is_error": True, "msg_body": "服务器维护期间暂停对外服务，请于北京时间 7:00 后再试"}, 418
         return func(*args, **kwargs)
     return wrapper
 

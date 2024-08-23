@@ -29,7 +29,7 @@ def get_user_music_details(uid: int):
     return [detail for music in data["userMusicList"] for detail in music["userMusicDetailList"]]
 
 def get_preview(uid, dao):
-    result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
+    result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg_body": "", "is_in_whitelist": False}
     if config["settings"]["whitelist"]["enable"] and dao:
         if dao.isWhitelist(uid):
             result["is_in_whitelist"] = True
@@ -51,11 +51,11 @@ def get_preview(uid, dao):
     result["data"] = preview
     result["is_success"] = True
     result["is_error"] = False
-    result["msg"] = "成功"
+    result["msg_body"] = "成功"
     return result
 
 def get_preview_detailed(uid):
-    result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg": "", "is_in_whitelist": False}
+    result = {"is_success": False, "is_error": False, "user_id": uid, "data":{}, "msg_body": "", "is_in_whitelist": False}
     login_dict = {
         "userId": uid,
         "accessCode": "",
@@ -74,7 +74,7 @@ def get_preview_detailed(uid):
         login = request.Request("UserLoginApiMaimaiChn", login_dict)
         if login["returnCode"] != 1:
             result["is_got_qr_code"] = False
-            result["msg"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
+            result["msg_body"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
             return result
     else:
         result["is_already_login"] = True
@@ -102,7 +102,7 @@ def get_preview_detailed(uid):
     return result
 
 def send_ticket_new(uid, ticket_id):
-    result = {"is_success": False, "is_already_had_ticket": False, "is_error": False, "user_id":uid, "msg": ""}
+    result = {"is_success": False, "is_already_had_ticket": False, "is_error": False, "user_id":uid, "msg_body": ""}
     login_dict = {
         "userId": uid,
         "accessCode": "",
@@ -129,7 +129,7 @@ def send_ticket_new(uid, ticket_id):
             if charge["stock"] > 0 and charge["chargeId"] == int(ticket_id):
                 had_ticket = True
                 result["is_already_had_ticket"] = True
-                result["msg"] = "无法重复发放跑图票"
+                result["msg_body"] = "无法重复发放跑图票"
                 break
 
     if not had_ticket:
@@ -159,16 +159,16 @@ def send_ticket_new(uid, ticket_id):
         try:
             request.Request("UpsertUserChargelogApiMaimaiChn", ticket_dict)
             result["is_success"] = True
-            result["msg"] = "成功"
+            result["msg_body"] = "成功"
         except Exception as e:
             print(e.with_traceback(None))
             result["is_error"] = True
-            result["msg"] = f"未知错误：{e.with_traceback(None)}"
+            result["msg_body"] = f"未知错误：{e.with_traceback(None)}"
 
     return result
 
 def send_ticket(uid, ticket_id):
-    result = {"is_success": False, "is_got_qr_code": True, "is_already_login": False, "is_already_had_ticket": False, "is_error": False, "user_id": uid, "msg": ""}
+    result = {"is_success": False, "is_got_qr_code": True, "is_already_login": False, "is_already_had_ticket": False, "is_error": False, "user_id": uid, "msg_body": ""}
     login_dict = {
         "userId": uid,
         "accessCode": "",
@@ -184,13 +184,13 @@ def send_ticket(uid, ticket_id):
     preview = request.Request("GetUserPreviewApiMaimaiChn", login_dict)
     if preview["isLogin"]:
         result["is_already_login"] = True
-        result["msg"] = "当前用户已上机，请先下机然后再试一遍"
+        result["msg_body"] = "当前用户已上机，请先下机然后再试一遍"
         return result
     else:
         login = request.Request("UserLoginApiMaimaiChn", login_dict)
         if login["returnCode"] != 1:
             result["is_got_qr_code"] = False
-            result["msg"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
+            result["msg_body"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
             return result
     user_data = request.Request("GetUserDataApiMaimaiChn", login_dict)
     charges = request.Request("GetUserChargeApiMaimaiChn", login_dict)
@@ -201,7 +201,7 @@ def send_ticket(uid, ticket_id):
             if charge["stock"] > 0 and charge["chargeId"] == int(ticket_id):
                 had_ticket = True
                 result["is_already_had_ticket"] = True
-                result["msg"] = "无法重复发放跑图票"
+                result["msg_body"] = "无法重复发放跑图票"
                 break
 
     if not had_ticket:
@@ -231,11 +231,11 @@ def send_ticket(uid, ticket_id):
         try:
             request.Request("UpsertUserChargelogApiMaimaiChn", ticket_dict)
             result["is_success"] = True
-            result["msg"] = "成功"
+            result["msg_body"] = "成功"
         except Exception as e:
             print(e.with_traceback(None))
             result["is_error"] = True
-            result["msg"] = f"未知错误：{e.with_traceback(None)}"
+            result["msg_body"] = f"未知错误：{e.with_traceback(None)}"
 
     if not preview["isLogin"]:
         request.Request("UserLogoutApiMaimaiChn", login_dict)
@@ -243,7 +243,7 @@ def send_ticket(uid, ticket_id):
     return result
 
 def logout(uid, timestamp=dateTime_constant):
-    result = {"is_success": False, "is_error": False, "user_id": uid, "msg": ""}
+    result = {"is_success": False, "is_error": False, "user_id": uid, "msg_body": ""}
     login_dict = {
         "userId": uid,
         "accessCode": "",
@@ -258,16 +258,16 @@ def logout(uid, timestamp=dateTime_constant):
         request = HTTPRequest(uid=uid)
         resp = request.Request("UserLogoutApiMaimaiChn", login_dict)
         result["is_success"] = True
-        result["msg"] = "成功"
+        result["msg_body"] = "成功"
     except Exception as e:
         e.with_traceback(None)
         result["is_error"] = True
-        result["msg"] = f"未知错误：{e.with_traceback(None)}"
+        result["msg_body"] = f"未知错误：{e.with_traceback(None)}"
 
     return result
 
 def dump_user_all(uid):
-    result = {"is_success": False, "is_got_qr_code": True, "is_error": False, "user_id": uid, "data": {}, "msg": ""}
+    result = {"is_success": False, "is_got_qr_code": True, "is_error": False, "user_id": uid, "data": {}, "msg_body": ""}
 
     available_attrs = ["UserData","UserExtend","UserOption","UserCharacter","UserMap","UserLoginBonus","UserRating","UserItem","UserMusic","UserCourse","UserCharge"]
     data = {}
@@ -289,7 +289,7 @@ def dump_user_all(uid):
         login = request.Request("UserLoginApiMaimaiChn", login_dict)
         if login["returnCode"] != 1:
             result["is_got_qr_code"] = False
-            result["msg"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
+            result["msg_body"] = "请在微信“舞萌 | 中二”服务号上点击一次“玩家二维码”按钮后再试一遍（无需再次发送二维码图片）"
             return result
     else:
         result["is_already_login"] = True
@@ -324,12 +324,12 @@ def dump_user_all(uid):
     if not preview["isLogin"]:
         request.Request("UserLogoutApiMaimaiChn", login_dict)
     result["is_success"] = True
-    result["msg"] = "成功"
+    result["msg_body"] = "成功"
     result["data"] = data
     return result
 
 def query_ticket(uid):
-    result = {"is_success": False, "is_error": False, "user_id": uid, "data": {}, "msg": ""}
+    result = {"is_success": False, "is_error": False, "user_id": uid, "data": {}, "msg_body": ""}
     request = HTTPRequest(uid=uid)
     ticket = request.Request("GetUserChargeApiMaimaiChn", {"userId": uid})
     if not ticket["userChargeList"]:
@@ -337,11 +337,11 @@ def query_ticket(uid):
     result["data"] = ticket
     result["is_success"] = True
     result["is_error"] = False
-    result["msg"] = "成功"
+    result["msg_body"] = "成功"
     return result
 
 def get_user_region(uid):
-    result = {"is_success": False, "is_error": False, "user_id": uid, "data": {}, "msg": ""}
+    result = {"is_success": False, "is_error": False, "user_id": uid, "data": {}, "msg_body": ""}
     request = HTTPRequest(uid=uid)
     resp = request.Request("GetUserRegionApiMaimaiChn", {"userId": uid})
 
@@ -352,7 +352,7 @@ def get_user_region(uid):
     result["data"] = resp
     result["is_success"] = True
     result["is_error"] = False
-    result["msg"] = "成功"
+    result["msg_body"] = "成功"
     return result
 
 def get_user_id_by_qr(qr_code):

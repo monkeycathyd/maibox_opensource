@@ -1,7 +1,7 @@
 import datetime
 from urllib import parse
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 import maibox.manager.config as config
@@ -11,7 +11,10 @@ cfg = config.get_config()
 
 _logger = getLogger(__name__)
 
-db_url = f"mysql+pymysql://{cfg['database']['user']}:{parse.quote(cfg['database']['password'])}@{cfg['database']['host']}:{cfg['database']['port']}/{cfg['database']['database']}"
+if cfg['database']["type"] == "mysql":
+    db_url = f"mysql+pymysql://{cfg['database']['user']}:{parse.quote(cfg['database']['password'])}@{cfg['database']['host']}:{cfg['database']['port']}/{cfg['database']['database']}"
+else:
+    db_url = f"sqlite:///./{cfg['database']['database']}.db"
 engine = create_engine(db_url, echo=False)
 
 Base = declarative_base()
@@ -50,16 +53,119 @@ class ActionLimit(Base):
     def __repr__(self):
         return f"<ActionLimit(wxid={self.trackable_significant}, action_type={self.action_type}, usage_count={self.usage_count}, period_first_start_time={self.period_first_start_time}, next_reset_time={self.next_reset_time})>"
 
+class MsgRecords(Base):
+    __tablename__ = "msg_records"
+    id = Column(Integer, primary_key=True)
+    date = Column(DateTime, default=datetime.datetime.now)
+    wxid = Column(String(255))
+    msg_type = Column(String(255))
+    msg_body = Column(Text)
+    is_response = Column(Boolean, nullable=False)
+
+    def __repr__(self):
+        return f"<MsgRecords(wxid={self.wxid}, msg_type={self.msg_type}, msg_body={self.msg_body}, is_response={self.is_response})>"
+
 
 def get_session():
-    Session = sessionmaker(bind=engine)
-    return Session()
+    return sessionmaker(bind=engine)()
 
 Base.metadata.create_all(engine)
 
 class Dao:
     def __init__(self):
         self._session = get_session()
+
+    def add_record(self, wxid: str, msg_body: str, msg_type: str="text", is_response: bool=False) -> bool:
+        try:
+            self._session.add(MsgRecords(wxid=wxid, msg_body=msg_body, msg_type=msg_type, is_response=is_response))
+            self._session.commit()
+            return True
+        except Exception as e:
+            self._session.rollback()
+            _logger.error(f"Error during add_record: {e}")
+            return False
+
+    def get_all_records(self, limit: int=100, offset: int=0):
+        try:
+            records = self._session.query(MsgRecords).order_by(MsgRecords.date.desc()).limit(limit).offset(offset).all()
+            _logger.info(f"get {len(records)} records")
+            return {
+                "next_offset": offset + limit,
+                "limit": limit,
+                "is_end": len(records) < limit,
+                "records": [
+                    {
+                        "id": record.id,
+                        "wxid": record.wxid,
+                        "date": record.date,
+                        "msg_body": record.msg_body
+                    } for record in records
+                ]
+            }
+        except Exception as e:
+            self._session.rollback()
+            _logger.error(f"Error during get_all_records: {e}")
+            return {
+                "next_offset": -1,
+                "limit": -1,
+                "is_end": True,
+                "records": []
+            }
+
+    def get_records_wxid(self, wxid: str, limit: int=100, offset: int=0):
+        try:
+            records = self._session.query(MsgRecords).filter(MsgRecords.wxid == wxid).order_by(MsgRecords.date.desc()).limit(limit).offset(offset).all()
+            _logger.info(f"get {len(records)} records")
+            return {
+                "next_offset": offset + limit,
+                "limit": limit,
+                "is_end": len(records) < limit,
+                "records": [
+                    {
+                        "id": record.id,
+                        "wxid": record.wxid,
+                        "date": record.date,
+                        "msg_body": record.msg_body
+                    } for record in records
+                ]
+            }
+        except Exception as e:
+            self._session.rollback()
+            _logger.error(f"Error during get_records_wxid: {e}")
+            return {
+                "next_offset": -1,
+                "limit": -1,
+                "is_end": True,
+                "records": []
+            }
+
+    def get_records_date_range(self, start_date: datetime.datetime=datetime.datetime.min, end_date: datetime.datetime=datetime.datetime.now(), limit: int=100, offset: int=0):
+        try:
+            _logger.info(f"get records between {start_date} and {end_date}")
+            records = self._session.query(MsgRecords).filter(MsgRecords.date >= start_date, MsgRecords.date <= end_date).order_by(MsgRecords.date.desc()).limit(limit).offset(offset).all()
+            _logger.info(f"get {len(records)} records")
+            return {
+                "next_offset": offset + limit,
+                "limit": limit,
+                "is_end": len(records) < limit,
+                "records": [
+                    {
+                        "id": record.id,
+                        "wxid": record.wxid,
+                        "date": record.date,
+                        "msg_body": record.msg_body
+                    } for record in records
+                ]
+            }
+        except Exception as e:
+            self._session.rollback()
+            _logger.error(f"Error during get_records_date_range: {e}")
+            return {
+                "next_offset": -1,
+                "limit": -1,
+                "is_end": True,
+                "records": []
+            }
 
     def getUid(self, wxid: str) -> int:
         try:

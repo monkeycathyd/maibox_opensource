@@ -1,4 +1,9 @@
 {
+  "info": {
+    "version": "Ver.CN 1.40",
+    "date": "1970-01-01 00:00:00"
+  },
+  "data": {
   "8": {
     "title": "True Love Song",
     "chart_difficulty": [
@@ -12878,4 +12883,4 @@
       14.7
     ]
   }
-}
+}}

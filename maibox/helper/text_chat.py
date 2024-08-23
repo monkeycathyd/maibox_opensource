@@ -15,7 +15,7 @@ import zxing
 
 import maibox
 from maibox.util import utils
-from maibox.manager import config, usage_count
+from maibox.manager import config, usage_count, user_msg_recorder
 from maibox.util.diving_fish_api import DivingFishApi, DivingFishRatingRankApi
 from maibox.util.process_threads import ErrorEMailSender
 from maibox.helper.ai_chat import ai_chat
@@ -38,24 +38,25 @@ counter = usage_count.UsageCount()
 class TextChatHandler:
     def __init__(self, dao):
         self.dao = dao
+        self._recorder = user_msg_recorder.UserMsgRecorder(dao)
         self._wechat_utils = get_utils()
         self._limited_mode = self._wechat_utils.interface_test()
         self.command_map = {
-            '同步': self.handle_sync, #
-            '看我': self.handle_preview, #
-            '加入白名单': self.handle_whitelist_join, #
-            '润': self.handle_logout, #
-            '解绑': self.handle_unbind, #
-            '绑定': self.handle_bind, #
-            '查票': self.handle_query_ticket, #
-            '发票': self.handle_send_ticket, #
-            '版本': self.handle_version, #
-            '帮助': self.handle_help, #
-            '使用须知': self.handle_agreement, #
-            'admin': self.handle_admin, #
-            '足迹': self.handle_region, #
-            'b50': self.handle_b50, #
-            '解析': self.handle_resolve, #
+            '同步': self.handle_sync,
+            '看我': self.handle_preview,
+            '加入白名单': self.handle_whitelist_join,
+            '润': self.handle_logout,
+            '解绑': self.handle_unbind,
+            '绑定': self.handle_bind,
+            '查票': self.handle_query_ticket,
+            '发票': self.handle_send_ticket,
+            '版本': self.handle_version,
+            '帮助': self.handle_help,
+            '使用须知': self.handle_agreement,
+            'admin': self.handle_admin,
+            '足迹': self.handle_region,
+            'b50': self.handle_b50,
+            '解析': self.handle_resolve,
             '我有多菜': self.handle_rank_lookup
         }
         self.admin_command_map = {
@@ -136,6 +137,7 @@ class TextChatHandler:
         return_msg = ""
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
         qr_content = self.decode_qr_from_url(url)
+        self._recorder.add(hashed_wxid, url, "image", False)
         if qr_content and ((len(qr_content) == 84) and qr_content.startswith("SGWCMAID") and qr_content[8:20].isdigit() and bool(re.match(r'^[0-9A-F]+$', qr_content[20:]))):
             result = self.getUserIDByQR(qr_content)
             uid = result["userID"]
@@ -153,10 +155,12 @@ class TextChatHandler:
                     return_msg = "绑定失败，无法获取到该用户信息，请检查二维码内容是否正确"
             else:
                 return_msg = "解析失败，请检查二维码是否正确"
+        self._recorder.add(hashed_wxid, return_msg, "text", True)
         return return_msg
 
     def process_event(self, event, wxid, version="", region=""):
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
+        self._recorder.add(hashed_wxid, event, "event", False)
         return_msg = ""
         match event:
             case "subscribe":
@@ -174,11 +178,12 @@ class TextChatHandler:
                     pass
             case _:
                 pass
-
+        self._recorder.add(hashed_wxid, return_msg, "text", True)
         return return_msg
 
     def process_chat(self,content, wxid, version="", region=""):
         hashed_wxid = hashlib.md5(wxid.encode()).hexdigest().lower()
+        self._recorder.add(hashed_wxid, content, "text", False)
         def inner_handler(inner_wxid=""):
             return_msg = ""
             try:
@@ -194,6 +199,8 @@ class TextChatHandler:
                 logger.info(f"User: {inner_wxid}\nSend: {content}\nResponse: {return_msg}")
 
             return_msg = return_msg.strip()
+
+            self._recorder.add(hashed_wxid, return_msg, "text", True)
 
             if inner_wxid:
                 self._wechat_utils.send_text(return_msg, inner_wxid)
@@ -244,7 +251,14 @@ class TextChatHandler:
     def handle_version(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         user_count, handled_count, my_count = counter.get(wxid)
         server_request_count, server_request_failed_count, server_request_compressed_skip_count, server_request_average_delay = maibox.network_count.get_network_status()
-        logger.info("{} {} {} {}".format(server_request_count, server_request_failed_count, server_request_compressed_skip_count, server_request_average_delay))
+
+        try:
+            server_request_failed_percent = (server_request_failed_count/server_request_count)*100
+            server_request_compressed_skip_percent = (server_request_compressed_skip_count/server_request_count)*100
+        except ZeroDivisionError:
+            server_request_failed_percent = 0.0
+            server_request_compressed_skip_percent = 0.0
+
         return_msg = """
 当前版本 {version}
 Git提交 {git}
@@ -252,7 +266,7 @@ Git提交 {git}
 {limit_mode_warning}
 当前服务自 {start_date} 启动
 已处理来自 {user_count} 位用户的共计 {handled_count} 次请求，其中来自于您的共计 {my_count} 次
-已向标题服务器反向代理发起 {server_request_count} 次请求，请求失败率为 {server_request_failed_count}%，zlib压缩跳过率为 {server_request_compressed_skip_count}%，平均响应延迟为 {server_request_average_delay} ms
+已向标题服务器反向代理发起 {server_request_count} 次请求，请求失败率为 {server_request_failed_percent}%，zlib压缩跳过率为 {server_request_compressed_skip_percent}%，平均响应延迟为 {server_request_average_delay} ms
 """.format(
             version=version,
             build_date=region,
@@ -263,8 +277,8 @@ Git提交 {git}
             handled_count=handled_count,
             my_count=my_count,
             server_request_count=server_request_count,
-            server_request_failed_count=f"{(server_request_failed_count/server_request_count)*100:.2f}",
-            server_request_compressed_skip_count=f"{(server_request_compressed_skip_count/server_request_count)*100:.2f}",
+            server_request_failed_percent=f"{server_request_failed_percent:.2f}",
+            server_request_compressed_skip_percent=f"{server_request_compressed_skip_percent:.2f}",
             server_request_average_delay=f"{server_request_average_delay:.2f}"
         )
         return return_msg.strip()
@@ -343,7 +357,7 @@ Git提交 {git}
     def handle_logout(self, wxid: str, content: str, version: str, region: str, non_hashed_wxid: str=""):
         split_content = self.final_word_cut(content)
         if len(split_content) == 3:
-            return_msg = sinmai.logout(int(split_content[1]), int(split_content[2]))["msg"]
+            return_msg = sinmai.logout(int(split_content[1]), int(split_content[2]))["msg_body"]
         else:
             blackroom = self.blackroom(wxid, int(split_content[1]))
             if blackroom:
@@ -441,7 +455,7 @@ Git提交 {git}
                 if isinstance(my_preview, dict):
                     if True or my_preview["is_in_whitelist"]:
                         if split_content[1].isdigit() and 6 >= int(split_content[1]) >= 2:
-                            return_msg = sinmai.send_ticket(user_id, int(split_content[1]))["msg"]
+                            return_msg = sinmai.send_ticket(user_id, int(split_content[1]))["msg_body"]
                         else:
                             return_msg = "倍数不在2-6之间"
                     else:
@@ -604,7 +618,7 @@ Git提交 {git}
         uid = self.dao.getUid(wxid)
         if uid:
             try:
-                return sinmai.logout(uid, timestamp)["msg"]
+                return sinmai.logout(uid, timestamp)["msg_body"]
             except Exception as e:
                 logger.error(f"Error {uuid.uuid1()}: {e}")
                 logger.error(f"{traceback.format_exc()}")
@@ -653,10 +667,10 @@ Git提交 {git}
         if uid:
             try:
                 data = sinmai.get_preview_detailed(uid)
-                if data["msg"]:
+                if data["msg_body"]:
                     if not data["is_got_qr_code"]:
                         return self.preview(wxid)
-                    return data["msg"]
+                    return data["msg_body"]
                 last_game_data_character = get_version_label(int(data["data"]["lastDataVersion"].split(".")[-1]))
                 last_rom_ver_tuple = tuple(map(int, data["data"]["lastRomVersion"].split(".")))
                 last_data_ver_tuple = tuple(map(int, data["data"]["lastDataVersion"].split(".")))

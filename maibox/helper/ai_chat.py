@@ -57,7 +57,7 @@ class AIProviders:
                     "Role": prompt["role"],
                     "Content": prompt["content"]
                 } for prompt in ([
-                  {'Role': 'system', 'Content': setting_prompt},
+                  {'role': 'system', 'content': setting_prompt},
               ] + prompts)]
             }
             req.from_json_string(json.dumps(params))
