@@ -1,7 +1,7 @@
 import datetime
 from urllib import parse
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Boolean, Double
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 import maibox.manager.config as config
@@ -65,6 +65,15 @@ class MsgRecords(Base):
     def __repr__(self):
         return f"<MsgRecords(wxid={self.wxid}, msg_type={self.msg_type}, msg_body={self.msg_body}, is_response={self.is_response})>"
 
+class NetworkRecords(Base):
+    __tablename__ = "network_records"
+    id = Column(Integer, primary_key=True)
+    date = Column(DateTime, default=datetime.datetime.now)
+    endpoint = Column(Text, nullable=False)
+    delay = Column(Double, default=0)
+    is_failed = Column(Boolean, default=False)
+    is_zlib_skip = Column(Boolean, default=False)
+
 
 def get_session():
     return sessionmaker(bind=engine)()
@@ -74,6 +83,30 @@ Base.metadata.create_all(engine)
 class Dao:
     def __init__(self):
         self._session = get_session()
+
+    def add_network_records(self, endpoint: str, delay: int=0, is_failed: bool=False, is_zlib_skip: bool=False):
+        try:
+            self._session.add(NetworkRecords(endpoint=endpoint, delay=delay, is_failed=is_failed, is_zlib_skip=is_zlib_skip))
+            self._session.commit()
+            return True
+        except Exception as e:
+            self._session.rollback()
+            _logger.error(f"Error during add_network_records: {e}")
+            return False
+
+    def get_network_records(self):
+        try:
+            return [{
+                "id": record.id,
+                "date": record.date,
+                "endpoint": record.endpoint,
+                "delay": record.delay,
+                "is_failed": record.is_failed,
+                "is_zlib_skip": record.is_zlib_skip
+            } for record in self._session.query(NetworkRecords).all()]
+        except Exception as e:
+            _logger.error(f"Error during get_network_records: {e}")
+            return []
 
     def add_record(self, wxid: str, msg_body: str, msg_type: str="text", is_response: bool=False) -> bool:
         try:
